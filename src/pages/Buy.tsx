@@ -1,35 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Property } from '../types'
 import { propertyService } from '../services/property'
-import PropertyCard from '../components/PropertyCard'
-import PropertyForm from '../components/PropertyForm'
 import PropertyGrid from '../components/PropertyGrid'
 import PropertyFilters from '../components/PropertyFilters'
 import { useToast } from '../components/ToastProvider'
 import { PROPERTY_TYPES, BUDGETS, BEDROOMS, CITY_SUGGESTIONS, budgetBucketBounds, extractPriceValue } from '../data/propertySearchOptions'
-import { PropertyPurpose } from '../data/publicHomeContent'
 
-const PURPOSES: { label: string; value: PropertyPurpose | '' }[] = [
-  { label: 'All', value: '' },
-  { label: 'Buy', value: 'buy' },
-  { label: 'Rent', value: 'rent' },
-  { label: 'Invest', value: 'invest' },
-]
-
-// Note: Purpose buttons are kept for Explore page flexibility, but users are encouraged to use dedicated routes
-
-const PropertiesPage: React.FC = () => {
+const BuyPage: React.FC = () => {
   const [loading,setLoading]=useState(false)
   const [error,setError]=useState<string | null>(null)
   const [items,setItems]=useState<Property[] | null>(null)
-  const [showForm,setShowForm]=useState(false)
   const [q,setQ]=useState('')
   const [typeFilter,setTypeFilter]=useState('')
   const [cityFilter,setCityFilter]=useState('')
   const [statusFilter,setStatusFilter]=useState('')
   const [sort,setSort]=useState('')
-  const [purposeFilter,setPurposeFilter]=useState<PropertyPurpose | ''>('')
   const [budgetFilter,setBudgetFilter]=useState('')
   const [bedroomsFilter,setBedroomsFilter]=useState('')
   const [matched,setMatched]=useState(false)
@@ -38,7 +24,7 @@ const PropertiesPage: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const fetch = async (overrides?: { q?: string; type?: string; city?: string; status?: string; sort?: string; purpose?: string }) => {
+  const fetch = async (overrides?: { q?: string; type?: string; city?: string; status?: string; sort?: string }) => {
     setLoading(true); setError(null)
     try{
       const res = await propertyService.list({
@@ -47,16 +33,14 @@ const PropertiesPage: React.FC = () => {
         city: (overrides?.city ?? cityFilter) || undefined,
         status: (overrides?.status ?? statusFilter) || undefined,
         sort: (overrides?.sort ?? sort) || undefined,
-        purpose: (overrides?.purpose ?? purposeFilter) || undefined,
+        purpose: 'buy',
       })
       setItems(res)
     }catch(e:any){ setError(String(e)) }
     setLoading(false)
   }
 
-  // Seed every filter from the URL once on load — this is what makes the
-  // homepage's Buy/Rent/Invest links, the hero search, and the match panel
-  // actually land somewhere meaningful instead of an unfiltered page.
+  // Seed filters from URL on load
   useEffect(()=>{
     const params = new URLSearchParams(location.search)
     const urlType = params.get('property_type') || ''
@@ -64,7 +48,6 @@ const PropertiesPage: React.FC = () => {
     const urlStatus = params.get('status') || ''
     const urlSort = params.get('sort') || ''
     const urlQ = params.get('q') || ''
-    const urlPurpose = (params.get('purpose') as PropertyPurpose | null) || ''
     const urlBudget = params.get('budget') || ''
     const urlBedrooms = params.get('bedrooms') || ''
     const urlMatch = params.get('match') === 'true'
@@ -74,19 +57,18 @@ const PropertiesPage: React.FC = () => {
     setStatusFilter(urlStatus)
     setSort(urlSort)
     setQ(urlQ)
-    setPurposeFilter(urlPurpose)
     setBudgetFilter(urlBudget)
     setBedroomsFilter(urlBedrooms)
     setMatched(urlMatch)
 
-    fetch({ q: urlQ, type: urlType, city: urlCity, status: urlStatus, sort: urlSort, purpose: urlPurpose })
+    fetch({ q: urlQ, type: urlType, city: urlCity, status: urlStatus, sort: urlSort })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function syncUrl(next: Partial<{ q: string; type: string; city: string; status: string; sort: string; purpose: PropertyPurpose | ''; budget: string; bedrooms: string }>) {
+  function syncUrl(next: Partial<{ q: string; type: string; city: string; status: string; sort: string; budget: string; bedrooms: string }>) {
     const state = {
       q, type: typeFilter, city: cityFilter, status: statusFilter, sort,
-      purpose: purposeFilter, budget: budgetFilter, bedrooms: bedroomsFilter,
+      budget: budgetFilter, bedrooms: bedroomsFilter,
       ...next,
     }
     const params = new URLSearchParams()
@@ -95,12 +77,9 @@ const PropertiesPage: React.FC = () => {
     if (state.city) params.set('location', state.city)
     if (state.status) params.set('status', state.status)
     if (state.sort) params.set('sort', state.sort)
-    if (state.purpose) params.set('purpose', state.purpose)
     if (state.budget) params.set('budget', state.budget)
     if (state.bedrooms) params.set('bedrooms', state.bedrooms)
-    
-    // For Explore page, we stay on /properties with purpose as query param
-    navigate({ pathname: '/properties', search: params.toString() }, { replace: true })
+    navigate({ pathname: '/buy', search: params.toString() }, { replace: true })
   }
 
   function handleSearch() {
@@ -110,30 +89,12 @@ const PropertiesPage: React.FC = () => {
 
   function handleClear() {
     setQ(''); setTypeFilter(''); setCityFilter(''); setStatusFilter(''); setSort('')
-    setPurposeFilter(''); setBudgetFilter(''); setBedroomsFilter(''); setMatched(false)
-    navigate('/properties', { replace: true })
+    setBudgetFilter(''); setBedroomsFilter(''); setMatched(false)
+    navigate('/buy', { replace: true })
     fetch({ q: '', type: '', city: '', status: '', sort: '' })
   }
 
-  const handleCreate = async (payload:any)=>{
-    setLoading(true)
-    try{
-      const created = await propertyService.create(payload)
-      if(created){
-        addToast({ message: 'Property created', type: 'success' })
-        setShowForm(false)
-        await fetch()
-      } else {
-        addToast({ message: 'Failed to create property', type: 'error' })
-      }
-    }catch(err:any){
-      addToast({ message: err?.message || 'Failed to create property', type: 'error' })
-    }finally{ setLoading(false) }
-  }
-
-  // Budget and bedrooms are applied client-side as "soft" filters since they may
-  // not be fully modeled on the backend yet. A listing missing that field stays
-  // visible rather than being wrongly hidden just because the data isn't tracked.
+  // Budget and bedrooms are applied client-side as "soft" filters
   const filtered = useMemo(() => {
     const source = items || []
     return source.filter((p) => {
@@ -151,42 +112,17 @@ const PropertiesPage: React.FC = () => {
 
   const activeFilterCount = [typeFilter, cityFilter, statusFilter, budgetFilter, bedroomsFilter].filter(Boolean).length
 
-  // Dynamic header based on purpose (Explore shows generic content)
-  const getHeaderTitle = () => {
-    return 'Explore Properties'
-  }
-
-  const getHeaderSubtitle = () => {
-    return 'Search properties by location, type, and more'
-  }
-
   return (
     <div>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
         <div>
-          <h2>{getHeaderTitle()}</h2>
-          <p style={{color:'var(--text-secondary)',margin:0}}>{getHeaderSubtitle()}</p>
+          <h2>Find a Property to Buy</h2>
+          <p style={{color:'var(--text-secondary)',margin:0}}>Discover properties available for purchase</p>
         </div>
         <div style={{display:'flex',gap:8}}>
           <input className="input" placeholder="Search by name, location or type" value={q} onChange={e=>setQ(e.target.value)} />
           <button className="button" onClick={handleSearch}>Search</button>
-          <button className="button" onClick={()=>setShowForm(true)}>Add Property</button>
         </div>
-      </div>
-
-      <div style={{display:'flex',gap:8,marginBottom:12}}>
-        {PURPOSES.map(p => (
-          <button
-            key={p.label}
-            className={purposeFilter === p.value ? 'button' : 'button muted'}
-            onClick={() => { setPurposeFilter(p.value); syncUrl({ purpose: p.value }) }}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-      <div style={{fontSize:'0.85em',color:'var(--text-secondary)',marginBottom:12}}>
-        💡 For dedicated experiences, use <Link to="/buy" style={{color:'var(--primary)'}}>Buy</Link>, <Link to="/rent" style={{color:'var(--primary)'}}>Rent</Link>, or <Link to="/invest" style={{color:'var(--primary)'}}>Invest</Link> pages.
       </div>
 
       {matched && (
@@ -202,14 +138,14 @@ const PropertiesPage: React.FC = () => {
         budgetFilter={budgetFilter}
         bedroomsFilter={bedroomsFilter}
         sort={sort}
-        purposeFilter={purposeFilter}
+        purposeFilter="buy"
         onTypeChange={setTypeFilter}
         onCityChange={setCityFilter}
         onStatusChange={setStatusFilter}
         onBudgetChange={setBudgetFilter}
         onBedroomsChange={setBedroomsFilter}
         onSortChange={setSort}
-        onPurposeChange={setPurposeFilter}
+        onPurposeChange={() => {}}
         onApply={handleSearch}
         onClear={handleClear}
         activeFilterCount={activeFilterCount}
@@ -218,16 +154,14 @@ const PropertiesPage: React.FC = () => {
         showBedroomsFilter={true}
       />
 
-      {showForm && <PropertyForm onSubmit={handleCreate} onCancel={()=>setShowForm(false)} />}
-
       <PropertyGrid 
         properties={filtered}
         loading={loading}
         error={error}
-        emptyMessage={activeFilterCount > 0 ? 'No properties match these filters. Try widening your search.' : 'No properties found. Try a different search.'}
+        emptyMessage={activeFilterCount > 0 ? 'No properties match these filters. Try widening your search.' : 'No properties available for purchase. Try a different search.'}
       />
     </div>
   )
 }
 
-export default PropertiesPage
+export default BuyPage

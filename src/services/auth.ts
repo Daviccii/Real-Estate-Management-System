@@ -29,7 +29,13 @@ export const authService = {
     clearToken()
     throw new Error('Not authenticated')
   },
-  logout(){
+  async logout(){
+    try{
+      // Attempt server-side logout if endpoint exists
+      await api.request('/auth/logout', { method: 'POST' })
+    }catch(e){
+      // ignore if not implemented
+    }
     clearToken()
   }
 }

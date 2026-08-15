@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <rect width="100%" height="100%" fill="#e8f4ff"/>
+  <g transform="translate(80,60)" fill="#0b6fb0">
+    <rect x="0" y="40" width="120" height="320" rx="8"/>
+    <rect x="150" y="0" width="180" height="420" rx="8"/>
+    <rect x="360" y="80" width="120" height="300" rx="8"/>
+    <rect x="500" y="20" width="220" height="420" rx="8"/>
+  </g>
+  <text x="40" y="560" fill="#08324a" font-family="Inter, Arial" font-size="20">Apartment</text>
+</svg>
