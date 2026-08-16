@@ -11,7 +11,16 @@ const PropertiesManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [selectedProperty, setSelectedProperty] = useState<AdminProperty | null>(null)
+  const [editForm, setEditForm] = useState({
+    name: '',
+    city: '',
+    status: '',
+    purpose: '',
+    property_type: '',
+    price_label: ''
+  })
   const { addToast } = useToast()
 
   useEffect(() => {
@@ -45,17 +54,57 @@ const PropertiesManagement: React.FC = () => {
     setShowDeleteConfirm(true)
   }
 
+  const handleEditProperty = (property: AdminProperty) => {
+    setSelectedProperty(property)
+    setEditForm({
+      name: property.name,
+      city: property.city || '',
+      status: property.status,
+      purpose: property.purpose || '',
+      property_type: property.property_type || '',
+      price_label: property.price_label || ''
+    })
+    setShowEditModal(true)
+  }
+
+  const handlePropertyUpdate = async () => {
+    if (!selectedProperty) return
+    
+    try {
+      await adminService.updateProperty(selectedProperty.id, editForm)
+      addToast({ 
+        message: 'Property updated successfully', 
+        type: 'success' 
+      })
+      setShowEditModal(false)
+      setSelectedProperty(null)
+      loadProperties()
+    } catch (error: any) {
+      addToast({ 
+        message: error?.message || 'Failed to update property', 
+        type: 'error' 
+      })
+    }
+  }
+
   const confirmDelete = async () => {
     if (!selectedProperty) return
     
-    // Note: This requires backend endpoint implementation
-    // For now, just show a message
-    addToast({ 
-      message: 'Property deletion requires backend endpoint implementation', 
-      type: 'warning' 
-    })
-    setShowDeleteConfirm(false)
-    setSelectedProperty(null)
+    try {
+      await adminService.deleteProperty(selectedProperty.id)
+      addToast({ 
+        message: 'Property deleted successfully', 
+        type: 'success' 
+      })
+      setShowDeleteConfirm(false)
+      setSelectedProperty(null)
+      loadProperties() // Reload the properties list
+    } catch (error: any) {
+      addToast({ 
+        message: error?.message || 'Failed to delete property', 
+        type: 'error' 
+      })
+    }
   }
 
   const getStatusBadgeColor = (status: string) => {
@@ -108,7 +157,7 @@ const PropertiesManagement: React.FC = () => {
       
       {/* Filters */}
       <div className="card" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div className="admin-filters">
           <input
             type="text"
             className="input"
@@ -140,8 +189,8 @@ const PropertiesManagement: React.FC = () => {
           {searchTerm || statusFilter ? 'No properties match your filters' : 'No properties found'}
         </div>
       ) : (
-        <div className="card">
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="card admin-table-container">
+          <table className="admin-table">
             <thead>
               <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
                 <th style={{ textAlign: 'left', padding: 12, fontWeight: 600 }}>ID</th>
@@ -160,11 +209,11 @@ const PropertiesManagement: React.FC = () => {
             <tbody>
               {filteredProperties.map((property) => (
                 <tr key={property.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: 12 }}>{property.id}</td>
-                  <td style={{ padding: 12, fontWeight: 600 }}>{property.name}</td>
-                  <td style={{ padding: 12 }}>{property.city || '—'}</td>
-                  <td style={{ padding: 12 }}>#{property.owner_id}</td>
-                  <td style={{ padding: 12 }}>
+                  <td data-label="ID" style={{ padding: 12 }}>{property.id}</td>
+                  <td data-label="Name" style={{ padding: 12, fontWeight: 600 }}>{property.name}</td>
+                  <td data-label="Location" style={{ padding: 12 }}>{property.city || '—'}</td>
+                  <td data-label="Owner" style={{ padding: 12 }}>#{property.owner_id}</td>
+                  <td data-label="Purpose" style={{ padding: 12 }}>
                     {property.purpose && (
                       <span style={{ 
                         color: 'white',
@@ -178,7 +227,7 @@ const PropertiesManagement: React.FC = () => {
                       </span>
                     )}
                   </td>
-                  <td style={{ padding: 12 }}>
+                  <td data-label="Status" style={{ padding: 12 }}>
                     <span style={{ 
                       color: 'white',
                       background: getStatusBadgeColor(property.status),
@@ -190,33 +239,35 @@ const PropertiesManagement: React.FC = () => {
                       {property.status.toUpperCase()}
                     </span>
                   </td>
-                  <td style={{ padding: 12, fontSize: 12 }}>
+                  <td data-label="Type" style={{ padding: 12, fontSize: 12 }}>
                     {property.property_type || '—'}
                   </td>
-                  <td style={{ padding: 12, fontSize: 12 }}>
+                  <td data-label="Units" style={{ padding: 12, fontSize: 12 }}>
                     {property.units_count || '—'}
                   </td>
-                  <td style={{ padding: 12, fontSize: 12 }}>
+                  <td data-label="Price" style={{ padding: 12, fontSize: 12 }}>
                     {property.price_label || '—'}
                   </td>
-                  <td style={{ padding: 12, fontSize: 12 }}>
+                  <td data-label="Created" style={{ padding: 12, fontSize: 12 }}>
                     {property.created_at ? new Date(property.created_at).toLocaleDateString() : 'N/A'}
                   </td>
-                  <td style={{ padding: 12, textAlign: 'right' }}>
-                    <button 
-                      className="button muted" 
-                      style={{ padding: '4px 8px', fontSize: 12 }}
-                      onClick={() => {/* TODO: Implement edit */}}
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      className="button danger" 
-                      style={{ padding: '4px 8px', fontSize: 12, marginLeft: 4 }}
-                      onClick={() => handleDeleteProperty(property)}
-                    >
-                      Delete
-                    </button>
+                  <td data-label="Actions" style={{ padding: 12, textAlign: 'right' }}>
+                    <div className="admin-actions">
+                      <button 
+                        className="button muted" 
+                        style={{ padding: '4px 8px', fontSize: 12 }}
+                        onClick={() => handleEditProperty(property)}
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        className="button danger" 
+                        style={{ padding: '4px 8px', fontSize: 12 }}
+                        onClick={() => handleDeleteProperty(property)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -235,6 +286,85 @@ const PropertiesManagement: React.FC = () => {
           setSelectedProperty(null)
         }}
       />
+
+      <ConfirmDialog 
+        open={showEditModal}
+        title="Edit Property"
+        description={`Edit ${selectedProperty?.name}`}
+        onConfirm={handlePropertyUpdate}
+        onCancel={() => {
+          setShowEditModal(false)
+          setSelectedProperty(null)
+        }}
+      >
+        <div style={{ marginTop: 16 }}>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>Name:</label>
+            <input
+              className="input"
+              value={editForm.name}
+              onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+              style={{ width: '100%' }}
+            />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>City:</label>
+            <input
+              className="input"
+              value={editForm.city}
+              onChange={(e) => setEditForm({...editForm, city: e.target.value})}
+              style={{ width: '100%' }}
+            />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>Status:</label>
+            <select
+              className="input"
+              value={editForm.status}
+              onChange={(e) => setEditForm({...editForm, status: e.target.value})}
+              style={{ width: '100%' }}
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="pending">Pending</option>
+              <option value="sold">Sold</option>
+              <option value="rented">Rented</option>
+            </select>
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>Purpose:</label>
+            <select
+              className="input"
+              value={editForm.purpose}
+              onChange={(e) => setEditForm({...editForm, purpose: e.target.value})}
+              style={{ width: '100%' }}
+            >
+              <option value="">Select purpose</option>
+              <option value="buy">Buy</option>
+              <option value="rent">Rent</option>
+              <option value="invest">Invest</option>
+            </select>
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>Property Type:</label>
+            <input
+              className="input"
+              value={editForm.property_type}
+              onChange={(e) => setEditForm({...editForm, property_type: e.target.value})}
+              style={{ width: '100%' }}
+            />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>Price Label:</label>
+            <input
+              className="input"
+              value={editForm.price_label}
+              onChange={(e) => setEditForm({...editForm, price_label: e.target.value})}
+              style={{ width: '100%' }}
+            />
+          </div>
+        </div>
+      </ConfirmDialog>
     </div>
   )
 }

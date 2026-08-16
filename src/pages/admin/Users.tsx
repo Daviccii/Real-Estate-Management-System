@@ -11,7 +11,9 @@ const UsersManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showEditRole, setShowEditRole] = useState(false)
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null)
+  const [newRole, setNewRole] = useState('')
   const { addToast } = useToast()
 
   useEffect(() => {
@@ -45,17 +47,50 @@ const UsersManagement: React.FC = () => {
     setShowDeleteConfirm(true)
   }
 
+  const handleEditRole = (user: AdminUser) => {
+    setSelectedUser(user)
+    setNewRole(user.role)
+    setShowEditRole(true)
+  }
+
+  const handleRoleUpdate = async () => {
+    if (!selectedUser || !newRole) return
+    
+    try {
+      await adminService.updateUserRole(selectedUser.id, newRole)
+      addToast({ 
+        message: 'User role updated successfully', 
+        type: 'success' 
+      })
+      setShowEditRole(false)
+      setSelectedUser(null)
+      loadUsers() // Reload the users list
+    } catch (error: any) {
+      addToast({ 
+        message: error?.message || 'Failed to update user role', 
+        type: 'error' 
+      })
+    }
+  }
+
   const confirmDelete = async () => {
     if (!selectedUser) return
     
-    // Note: This requires backend endpoint implementation
-    // For now, just show a message
-    addToast({ 
-      message: 'User deletion requires backend endpoint implementation', 
-      type: 'warning' 
-    })
-    setShowDeleteConfirm(false)
-    setSelectedUser(null)
+    try {
+      await adminService.deleteUser(selectedUser.id)
+      addToast({ 
+        message: 'User deleted successfully', 
+        type: 'success' 
+      })
+      setShowDeleteConfirm(false)
+      setSelectedUser(null)
+      loadUsers() // Reload the users list
+    } catch (error: any) {
+      addToast({ 
+        message: error?.message || 'Failed to delete user', 
+        type: 'error' 
+      })
+    }
   }
 
   const getRoleBadgeColor = (role: string) => {
@@ -98,7 +133,7 @@ const UsersManagement: React.FC = () => {
       
       {/* Filters */}
       <div className="card" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div className="admin-filters">
           <input
             type="text"
             className="input"
@@ -130,8 +165,8 @@ const UsersManagement: React.FC = () => {
           {searchTerm || roleFilter ? 'No users match your filters' : 'No users found'}
         </div>
       ) : (
-        <div className="card">
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="card admin-table-container">
+          <table className="admin-table">
             <thead>
               <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
                 <th style={{ textAlign: 'left', padding: 12, fontWeight: 600 }}>ID</th>
@@ -146,10 +181,10 @@ const UsersManagement: React.FC = () => {
             <tbody>
               {filteredUsers.map((user) => (
                 <tr key={user.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: 12 }}>{user.id}</td>
-                  <td style={{ padding: 12 }}>{user.email}</td>
-                  <td style={{ padding: 12 }}>{user.full_name || '—'}</td>
-                  <td style={{ padding: 12 }}>
+                  <td data-label="ID" style={{ padding: 12 }}>{user.id}</td>
+                  <td data-label="Email" style={{ padding: 12 }}>{user.email}</td>
+                  <td data-label="Name" style={{ padding: 12 }}>{user.full_name || '—'}</td>
+                  <td data-label="Role" style={{ padding: 12 }}>
                     <span style={{ 
                       color: 'white',
                       background: getRoleBadgeColor(user.role),
@@ -161,7 +196,7 @@ const UsersManagement: React.FC = () => {
                       {user.role.toUpperCase()}
                     </span>
                   </td>
-                  <td style={{ padding: 12 }}>
+                  <td data-label="Status" style={{ padding: 12 }}>
                     <span style={{ 
                       color: user.is_active ? 'var(--success)' : 'var(--danger)',
                       fontWeight: 600
@@ -169,24 +204,26 @@ const UsersManagement: React.FC = () => {
                       {user.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td style={{ padding: 12, fontSize: 12 }}>
+                  <td data-label="Created" style={{ padding: 12, fontSize: 12 }}>
                     {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
                   </td>
-                  <td style={{ padding: 12, textAlign: 'right' }}>
-                    <button 
-                      className="button muted" 
-                      style={{ padding: '4px 8px', fontSize: 12 }}
-                      onClick={() => {/* TODO: Implement edit */}}
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      className="button danger" 
-                      style={{ padding: '4px 8px', fontSize: 12, marginLeft: 4 }}
-                      onClick={() => handleDeleteUser(user)}
-                    >
-                      Delete
-                    </button>
+                  <td data-label="Actions" style={{ padding: 12, textAlign: 'right' }}>
+                    <div className="admin-actions">
+                      <button 
+                        className="button muted" 
+                        style={{ padding: '4px 8px', fontSize: 12 }}
+                        onClick={() => handleEditRole(user)}
+                      >
+                        Edit Role
+                      </button>
+                      <button 
+                        className="button danger" 
+                        style={{ padding: '4px 8px', fontSize: 12 }}
+                        onClick={() => handleDeleteUser(user)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -205,6 +242,34 @@ const UsersManagement: React.FC = () => {
           setSelectedUser(null)
         }}
       />
+
+      <ConfirmDialog 
+        open={showEditRole}
+        title="Edit User Role"
+        description={`Change role for ${selectedUser?.email}`}
+        onConfirm={handleRoleUpdate}
+        onCancel={() => {
+          setShowEditRole(false)
+          setSelectedUser(null)
+          setNewRole('')
+        }}
+      >
+        <div style={{ marginTop: 16 }}>
+          <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Select Role:</label>
+          <select
+            className="input"
+            value={newRole}
+            onChange={(e) => setNewRole(e.target.value)}
+            style={{ width: '100%' }}
+          >
+            <option value="user">User</option>
+            <option value="tenant">Tenant</option>
+            <option value="agent">Agent</option>
+            <option value="manager">Manager</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </ConfirmDialog>
     </div>
   )
 }

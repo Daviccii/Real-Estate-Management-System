@@ -33,6 +33,10 @@ import ManagersManagement from './pages/admin/Managers'
 import TenantsManagement from './pages/admin/Tenants'
 import AdminMarketInsights from './pages/admin/MarketInsights'
 import AdminSettings from './pages/admin/Settings'
+import UnitsManagement from './pages/admin/Units'
+import LeasesManagement from './pages/admin/Leases'
+import PaymentsManagement from './pages/admin/Payments'
+import MaintenanceManagement from './pages/admin/Maintenance'
 
 const RequireAuth: React.FC = () => {
   const { user, loading } = useAuth()
@@ -116,6 +120,10 @@ const App: React.FC = () => {
                     <Route path="dashboard" element={<AdminDashboard />} />
                     <Route path="users" element={<UsersManagement />} />
                     <Route path="properties" element={<PropertiesManagement />} />
+                    <Route path="units" element={<UnitsManagement />} />
+                    <Route path="leases" element={<LeasesManagement />} />
+                    <Route path="payments" element={<PaymentsManagement />} />
+                    <Route path="maintenance" element={<MaintenanceManagement />} />
                     <Route path="inquiries" element={<InquiriesManagement />} />
                     <Route path="agents" element={<AgentsManagement />} />
                     <Route path="managers" element={<ManagersManagement />} />

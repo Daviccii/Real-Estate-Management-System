@@ -87,6 +87,18 @@ export const adminService = {
     return api.request(url)
   },
 
+  async deleteUser(userId: number): Promise<{ message: string }> {
+    return api.request(`/admin/users/${userId}`, { method: 'DELETE' })
+  },
+
+  async updateUserRole(userId: number, role: string): Promise<{ id: number; email: string; role: string; message: string }> {
+    return api.request(`/admin/users/${userId}/role`, { 
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role })
+    })
+  },
+
   async getProperties(params?: { status?: string; skip?: number; limit?: number }): Promise<AdminProperty[]> {
     const queryString = new URLSearchParams()
     if (params?.status) queryString.append('status', params.status)
@@ -97,6 +109,18 @@ export const adminService = {
     return api.request(url)
   },
 
+  async deleteProperty(propertyId: number): Promise<{ message: string }> {
+    return api.request(`/admin/properties/${propertyId}`, { method: 'DELETE' })
+  },
+
+  async updateProperty(propertyId: number, data: Partial<AdminProperty>): Promise<AdminProperty> {
+    return api.request(`/admin/properties/${propertyId}`, { 
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+  },
+
   async getInquiries(params?: { status?: string; skip?: number; limit?: number }): Promise<AdminInquiry[]> {
     const queryString = new URLSearchParams()
     if (params?.status) queryString.append('status', params.status)
@@ -105,6 +129,14 @@ export const adminService = {
     
     const url = `/admin/inquiries${queryString.toString() ? '?' + queryString.toString() : ''}`
     return api.request(url)
+  },
+
+  async updateInquiryStatus(inquiryId: number, status: string): Promise<{ id: number; status: string; message: string }> {
+    return api.request(`/admin/inquiries/${inquiryId}/status`, { 
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    })
   },
 
   async getMarketInsights(): Promise<MarketInsights> {

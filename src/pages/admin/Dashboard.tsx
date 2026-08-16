@@ -67,12 +67,21 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className="page">
-      <h1>Admin Dashboard</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <h1>Admin Dashboard</h1>
+        <button 
+          className="button" 
+          onClick={loadDashboard}
+          style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+        >
+          Refresh Data
+        </button>
+      </div>
       
       {/* User Statistics */}
       <div style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 18, marginBottom: 12 }}>User Statistics</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+        <div className="admin-responsive-grid">
           <StatCard title="Total Users" value={stats.users.total} />
           {Object.entries(stats.users.by_role).map(([role, count]) => (
             <StatCard 
@@ -88,7 +97,7 @@ const AdminDashboard: React.FC = () => {
       {/* Property Statistics */}
       <div style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 18, marginBottom: 12 }}>Property Statistics</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+        <div className="admin-responsive-grid">
           <StatCard title="Total Properties" value={stats.properties.total} />
           <StatCard 
             title="Active Properties" 
@@ -108,7 +117,7 @@ const AdminDashboard: React.FC = () => {
       {/* Inquiry Statistics */}
       <div style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: 18, marginBottom: 12 }}>Inquiry Statistics</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+        <div className="admin-responsive-grid">
           <StatCard title="Total Inquiries" value={stats.inquiries.total} />
           {Object.entries(stats.inquiries.by_status).map(([status, count]) => (
             <StatCard 

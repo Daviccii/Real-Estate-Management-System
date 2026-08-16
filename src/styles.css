@@ -143,3 +143,145 @@ button:focus, a:focus, input:focus, select:focus, textarea:focus{
   .public-nav, .public-nav .nav-link, .public-nav .nav-cta, .public-nav .nav-cta-ghost, .property-card, .property-card-save { transition:none }
 }
 
+/* Admin-specific responsive styles */
+.admin-table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+@media (max-width: 768px) {
+  .admin-table {
+    font-size: 14px;
+  }
+  
+  .admin-table th,
+  .admin-table td {
+    padding: 8px;
+  }
+  
+  .admin-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .admin-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-table {
+    font-size: 12px;
+  }
+  
+  .admin-table th,
+  .admin-table td {
+    padding: 6px;
+  }
+}
+
+/* Responsive admin cards */
+.admin-responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .admin-responsive-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Responsive filters */
+.admin-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+  .admin-filters {
+    flex-direction: column;
+  }
+  
+  .admin-filters > * {
+    width: 100%;
+  }
+}
+
+/* Mobile-friendly admin tables - card view */
+@media (max-width: 640px) {
+  .admin-table thead {
+    display: none;
+  }
+  
+  .admin-table tbody tr {
+    display: block;
+    margin-bottom: 16px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  
+  .admin-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  
+  .admin-table tbody td:last-child {
+    border-bottom: none;
+  }
+  
+  .admin-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    margin-right: 12px;
+  }
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal {
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal h3 {
+  margin: 0 0 12px 0;
+  color: var(--accent);
+}
+
+.modal p {
+  margin: 0 0 16px 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .modal {
+    margin: 20px;
+  }
+}
+

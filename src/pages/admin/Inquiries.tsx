@@ -30,11 +30,21 @@ const InquiriesManagement: React.FC = () => {
   }
 
   const handleStatusUpdate = async (inquiryId: number, newStatus: string) => {
-    // Note: This requires backend endpoint implementation
-    addToast({ 
-      message: 'Status update requires backend endpoint implementation', 
-      type: 'warning' 
-    })
+    if (!newStatus) return
+    
+    try {
+      await adminService.updateInquiryStatus(inquiryId, newStatus)
+      addToast({ 
+        message: 'Inquiry status updated successfully', 
+        type: 'success' 
+      })
+      loadInquiries() // Reload the inquiries list
+    } catch (error: any) {
+      addToast({ 
+        message: error?.message || 'Failed to update inquiry status', 
+        type: 'error' 
+      })
+    }
   }
 
   const getStatusBadgeColor = (status: string) => {
@@ -76,7 +86,7 @@ const InquiriesManagement: React.FC = () => {
       
       {/* Filters */}
       <div className="card" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div className="admin-filters">
           <select
             className="input"
             value={statusFilter}
@@ -98,8 +108,8 @@ const InquiriesManagement: React.FC = () => {
           {statusFilter ? 'No inquiries match your filters' : 'No inquiries found'}
         </div>
       ) : (
-        <div className="card">
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="card admin-table-container">
+          <table className="admin-table">
             <thead>
               <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
                 <th style={{ textAlign: 'left', padding: 12, fontWeight: 600 }}>ID</th>
@@ -113,10 +123,10 @@ const InquiriesManagement: React.FC = () => {
             <tbody>
               {inquiries.map((inquiry) => (
                 <tr key={inquiry.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: 12 }}>#{inquiry.id}</td>
-                  <td style={{ padding: 12 }}>#{inquiry.user_id}</td>
-                  <td style={{ padding: 12 }}>#{inquiry.property_id}</td>
-                  <td style={{ padding: 12 }}>
+                  <td data-label="ID" style={{ padding: 12 }}>#{inquiry.id}</td>
+                  <td data-label="User ID" style={{ padding: 12 }}>#{inquiry.user_id}</td>
+                  <td data-label="Property ID" style={{ padding: 12 }}>#{inquiry.property_id}</td>
+                  <td data-label="Status" style={{ padding: 12 }}>
                     <span style={{ 
                       color: 'white',
                       background: getStatusBadgeColor(inquiry.status),
@@ -128,10 +138,10 @@ const InquiriesManagement: React.FC = () => {
                       {inquiry.status.replace('_', ' ').toUpperCase()}
                     </span>
                   </td>
-                  <td style={{ padding: 12, fontSize: 12 }}>
+                  <td data-label="Created" style={{ padding: 12, fontSize: 12 }}>
                     {inquiry.created_at ? new Date(inquiry.created_at).toLocaleDateString() : 'N/A'}
                   </td>
-                  <td style={{ padding: 12, textAlign: 'right' }}>
+                  <td data-label="Actions" style={{ padding: 12, textAlign: 'right' }}>
                     <select
                       className="input"
                       style={{ padding: '4px 8px', fontSize: 12, minWidth: 100 }}
