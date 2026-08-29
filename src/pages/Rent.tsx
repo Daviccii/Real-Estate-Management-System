@@ -114,14 +114,14 @@ const RentPage: React.FC = () => {
 
   return (
     <div>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:12,marginBottom:12}}>
         <div>
           <h2>Find a Place to Rent</h2>
           <p style={{color:'var(--text-secondary)',margin:0}}>Find your perfect rental property</p>
         </div>
-        <div style={{display:'flex',gap:8}}>
-          <input className="input" placeholder="Search by name, location or type" value={q} onChange={e=>setQ(e.target.value)} />
-          <button className="button" onClick={handleSearch}>Search</button>
+        <div style={{display:'flex',gap:8,flex:'1 1 320px',maxWidth:420}}>
+          <input className="input" style={{flex:1,minWidth:0}} placeholder="Search by name, location or type" value={q} onChange={e=>setQ(e.target.value)} />
+          <button className="button" style={{flexShrink:0}} onClick={handleSearch}>Search</button>
         </div>
       </div>
 

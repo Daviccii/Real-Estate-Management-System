@@ -1,0 +1,123 @@
+/* Reuses the --pn-* custom properties declared in Home.css's :root block.
+   Falls back to sane defaults via var(--x, fallback) in case this component
+   ever renders on a route where Home.css hasn't been loaded yet. */
+
+.pn-filters-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+  border: 1px solid var(--pn-line, rgba(11, 27, 51, 0.09));
+  border-radius: var(--pn-radius-lg, 20px);
+  background: var(--pn-surface-strong, #fff);
+  box-shadow: var(--pn-shadow-soft, 0 10px 24px rgba(10, 24, 46, 0.06));
+}
+
+.pn-filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.pn-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 160px;
+  min-width: 140px;
+}
+
+.pn-filter-field span {
+  color: var(--pn-slate, #5d6b7d);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.pn-filter-field input,
+.pn-filter-field select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(11, 27, 51, 0.11);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--pn-ink, #081120);
+  padding: 10px 12px;
+  font: inherit;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.pn-filter-field input:focus,
+.pn-filter-field select:focus {
+  border-color: rgba(31, 95, 191, 0.38);
+  box-shadow: 0 0 0 4px rgba(31, 95, 191, 0.12);
+  outline: none;
+}
+
+.pn-filters-actions {
+  display: flex;
+  gap: 10px;
+  flex: 0 0 auto;
+  align-self: flex-end;
+}
+
+.pn-filters-actions .pn-btn {
+  min-height: 44px;
+  padding: 0 20px;
+}
+
+.pn-filters-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.pn-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(31, 95, 191, 0.08);
+  color: var(--pn-blue-strong, #1d3fd6);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.pn-filter-chip button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0;
+  opacity: 0.7;
+}
+
+.pn-filter-chip button:hover {
+  opacity: 1;
+}
+
+@media (max-width: 720px) {
+  .pn-filters-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pn-filter-field {
+    min-width: 0;
+  }
+
+  .pn-filters-actions {
+    align-self: stretch;
+    width: 100%;
+  }
+
+  .pn-filters-actions .pn-btn {
+    flex: 1;
+  }
+}

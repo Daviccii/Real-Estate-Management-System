@@ -3,6 +3,7 @@ import { Property } from '../types'
 import { Link } from 'react-router-dom'
 import { useFavorites } from '../contexts/FavoriteContext'
 import { useAuth } from '../contexts/AuthContext'
+import { NON_RESIDENTIAL_TYPES } from '../data/propertySearchOptions'
 
 type PropertyCardProps = {
   p: Property
@@ -24,31 +25,24 @@ function formatPrice(property: Property) {
   return null
 }
 
+// FIX: this previously called source.unsplash.com/... — Unsplash Source was
+// deprecated and shut down in 2023, so every card without a real image_url
+// silently failed to load and fell back to the empty grey CSS gradient seen
+// on the Explore page. picsum.photos is a stable, still-active placeholder
+// service; seeding it with the property id keeps the same property showing
+// the same image on every visit instead of a random one each render.
 function getRealEstateImage(property: Property): string {
   if (property.image_url) return property.image_url
-  
-  const type = (property.property_type || '').toLowerCase()
-  const purpose = (property.purpose || '').toLowerCase()
-  
-  // Generate relevant keywords based on property type and purpose
-  let keywords = 'real-estate'
-  
-  if (type.includes('residential') || type.includes('apartment')) {
-    keywords = purpose === 'rent' ? 'apartment,interior' : 'luxury-apartment,exterior'
-  } else if (type.includes('villa') || type.includes('bungalow')) {
-    keywords = 'house,exterior'
-  } else if (type.includes('commercial') || type.includes('office')) {
-    keywords = 'office-building,modern'
-  } else if (type.includes('mixed')) {
-    keywords = 'mixed-use-building'
-  } else if (type.includes('industrial')) {
-    keywords = 'industrial-building'
-  } else {
-    keywords = 'building,architecture'
-  }
-  
-  // Use Unsplash Source for real estate images
-  return `https://source.unsplash.com/640x420/?${encodeURIComponent(keywords)}&sig=${property.id}`
+  return `https://picsum.photos/seed/propnoxa-${property.id}/640/420`
+}
+
+// FIX: a warehouse or a plot of land showing "0 beds · 0 baths" reads as a
+// data error rather than as "not applicable". Hide those badges entirely for
+// property types that don't logically carry a bedroom/bathroom count instead
+// of displaying zero.
+function isResidentialType(propertyType?: string | null): boolean {
+  if (!propertyType) return true
+  return !NON_RESIDENTIAL_TYPES.includes(propertyType)
 }
 
 const PropertyCard: React.FC<PropertyCardProps> = ({p, variant = 'default', onFavoriteToggle, isSaved = false, fromPath}) => {
@@ -62,9 +56,10 @@ const PropertyCard: React.FC<PropertyCardProps> = ({p, variant = 'default', onFa
   const area = formatArea(p.area)
   const location = [p.city, p.country].filter(Boolean).join(', ') || p.address || 'Location available on request'
   const variantLabel = variant === 'featured' ? 'Featured listing' : p.status || 'Listing'
+  const showBedBath = isResidentialType(p.property_type)
   const summaryItems = [
-    typeof p.bedrooms === 'number' ? `${p.bedrooms} bed${p.bedrooms === 1 ? '' : 's'}` : null,
-    typeof p.bathrooms === 'number' ? `${p.bathrooms} bath${p.bathrooms === 1 ? '' : 's'}` : null,
+    showBedBath && typeof p.bedrooms === 'number' ? `${p.bedrooms} bed${p.bedrooms === 1 ? '' : 's'}` : null,
+    showBedBath && typeof p.bathrooms === 'number' ? `${p.bathrooms} bath${p.bathrooms === 1 ? '' : 's'}` : null,
     area,
     p.units_count != null ? `${p.units_count} units` : null,
   ].filter(Boolean) as string[]

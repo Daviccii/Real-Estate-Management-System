@@ -1,0 +1,15 @@
+.pn-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.pn-pagination-page {
+  color: var(--pn-slate, #5d6b7d);
+  font-weight: 600;
+  font-size: 0.9rem;
+  min-width: 70px;
+  text-align: center;
+}

@@ -10,6 +10,10 @@ export const PROPERTY_TYPES = [
   { label: 'Land', value: 'Land' },
 ]
 
+// Types that don't logically carry a bedroom/bathroom count — used to hide
+// those badges on PropertyCard instead of showing "0 beds" on a warehouse.
+export const NON_RESIDENTIAL_TYPES = ['Commercial', 'Industrial', 'Land']
+
 export const BUDGETS = [
   { label: 'Any budget', value: '' },
   { label: 'Under KES 5M', value: 'under-5m' },

@@ -51,6 +51,11 @@ export interface LeaseTerminate {
   notes?: string
 }
 
+// FIX: removed the hardcoded `/api/` prefix from every path below. VITE_API_BASE
+// already includes `/api` (that's why admin.ts's plain `/admin/...` calls work),
+// so these calls were resolving to `.../api/api/leases/...` — a path FastAPI has
+// never served — and 404ing on every request. See property.ts / admin.ts for the
+// convention these now match.
 export const leaseService = {
   list: async (params?: {
     skip?: number
@@ -67,16 +72,16 @@ export const leaseService = {
     if (params?.unit_id) queryParams.append('unit_id', params.unit_id.toString())
     if (params?.tenant_id) queryParams.append('tenant_id', params.tenant_id.toString())
     if (params?.status) queryParams.append('status', params.status)
-    
-    return api.request<Lease[]>(`/api/leases/?${queryParams}`)
+
+    return api.request<Lease[]>(`/leases/?${queryParams}`)
   },
 
   get: async (leaseId: number) => {
-    return api.request<Lease>(`/api/leases/${leaseId}`)
+    return api.request<Lease>(`/leases/${leaseId}`)
   },
 
   create: async (data: LeaseCreate) => {
-    return api.request<Lease>('/api/leases/', {
+    return api.request<Lease>(`/leases/`, {
       method: 'POST',
       body: JSON.stringify(data),
       headers: { 'Content-Type': 'application/json' }
@@ -84,7 +89,7 @@ export const leaseService = {
   },
 
   update: async (leaseId: number, data: LeaseUpdate) => {
-    return api.request<Lease>(`/api/leases/${leaseId}`, {
+    return api.request<Lease>(`/leases/${leaseId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
       headers: { 'Content-Type': 'application/json' }
@@ -92,13 +97,13 @@ export const leaseService = {
   },
 
   delete: async (leaseId: number) => {
-    return api.request<void>(`/api/leases/${leaseId}`, {
+    return api.request<void>(`/leases/${leaseId}`, {
       method: 'DELETE'
     })
   },
 
   renew: async (leaseId: number, data: LeaseRenew) => {
-    return api.request<Lease>(`/api/leases/${leaseId}/renew`, {
+    return api.request<Lease>(`/leases/${leaseId}/renew`, {
       method: 'POST',
       body: JSON.stringify(data),
       headers: { 'Content-Type': 'application/json' }
@@ -106,7 +111,7 @@ export const leaseService = {
   },
 
   terminate: async (leaseId: number, data: LeaseTerminate) => {
-    return api.request<Lease>(`/api/leases/${leaseId}/terminate`, {
+    return api.request<Lease>(`/leases/${leaseId}/terminate`, {
       method: 'POST',
       body: JSON.stringify(data),
       headers: { 'Content-Type': 'application/json' }
@@ -122,7 +127,7 @@ export const leaseService = {
     if (params?.days) queryParams.append('days', params.days.toString())
     if (params?.skip) queryParams.append('skip', params.skip.toString())
     if (params?.limit) queryParams.append('limit', params.limit.toString())
-    
-    return api.request<Lease[]>(`/api/leases/expiring-soon?${queryParams}`)
+
+    return api.request<Lease[]>(`/leases/expiring-soon?${queryParams}`)
   }
 }

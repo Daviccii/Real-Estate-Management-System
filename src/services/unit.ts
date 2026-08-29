@@ -38,6 +38,9 @@ export interface UnitUpdate {
   availability_date?: string
 }
 
+// FIX: removed the hardcoded `/api/` prefix — see lease.ts for the full
+// explanation. VITE_API_BASE already includes `/api`, so these calls were
+// resolving to `.../api/api/units/...` and 404ing.
 export const unitService = {
   list: async (params?: {
     skip?: number
@@ -58,16 +61,16 @@ export const unitService = {
     if (params?.bedrooms) queryParams.append('bedrooms', params.bedrooms.toString())
     if (params?.min_rent) queryParams.append('min_rent', params.min_rent)
     if (params?.max_rent) queryParams.append('max_rent', params.max_rent)
-    
-    return api.request<Unit[]>(`/api/units/?${queryParams}`)
+
+    return api.request<Unit[]>(`/units/?${queryParams}`)
   },
 
   get: async (unitId: number) => {
-    return api.request<Unit>(`/api/units/${unitId}`)
+    return api.request<Unit>(`/units/${unitId}`)
   },
 
   create: async (data: UnitCreate) => {
-    return api.request<Unit>('/api/units/', {
+    return api.request<Unit>(`/units/`, {
       method: 'POST',
       body: JSON.stringify(data),
       headers: { 'Content-Type': 'application/json' }
@@ -75,7 +78,7 @@ export const unitService = {
   },
 
   update: async (unitId: number, data: UnitUpdate) => {
-    return api.request<Unit>(`/api/units/${unitId}`, {
+    return api.request<Unit>(`/units/${unitId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
       headers: { 'Content-Type': 'application/json' }
@@ -83,7 +86,7 @@ export const unitService = {
   },
 
   delete: async (unitId: number) => {
-    return api.request<void>(`/api/units/${unitId}`, {
+    return api.request<void>(`/units/${unitId}`, {
       method: 'DELETE'
     })
   },
@@ -97,7 +100,7 @@ export const unitService = {
     if (params?.skip) queryParams.append('skip', params.skip.toString())
     if (params?.limit) queryParams.append('limit', params.limit.toString())
     if (params?.status) queryParams.append('status', params.status)
-    
-    return api.request<Unit[]>(`/api/units/properties/${propertyId}/units?${queryParams}`)
+
+    return api.request<Unit[]>(`/units/properties/${propertyId}/units?${queryParams}`)
   }
 }

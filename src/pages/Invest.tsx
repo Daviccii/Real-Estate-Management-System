@@ -4,13 +4,18 @@ import { Property } from '../types'
 import { propertyService } from '../services/property'
 import PropertyGrid from '../components/PropertyGrid'
 import PropertyFilters from '../components/PropertyFilters'
+import Pagination from '../components/Pagination'
 import { useToast } from '../components/ToastProvider'
 import { PROPERTY_TYPES, BUDGETS, BEDROOMS, CITY_SUGGESTIONS, budgetBucketBounds, extractPriceValue } from '../data/propertySearchOptions'
+
+const PAGE_SIZE = 9
 
 const InvestPage: React.FC = () => {
   const [loading,setLoading]=useState(false)
   const [error,setError]=useState<string | null>(null)
   const [items,setItems]=useState<Property[] | null>(null)
+  const [page,setPage]=useState(1)
+  const [hasMore,setHasMore]=useState(false)
   const [q,setQ]=useState('')
   const [typeFilter,setTypeFilter]=useState('')
   const [cityFilter,setCityFilter]=useState('')
@@ -24,10 +29,11 @@ const InvestPage: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const fetch = async (overrides?: { q?: string; type?: string; city?: string; status?: string; sort?: string }) => {
+  const fetch = async (overrides?: { q?: string; type?: string; city?: string; status?: string; sort?: string; page?: number }) => {
     setLoading(true); setError(null)
+    const targetPage = overrides?.page ?? page
     try{
-      const res = await propertyService.list({
+      const res = await propertyService.pagedList(targetPage, PAGE_SIZE, {
         search: (overrides?.q ?? q) || undefined,
         property_type: (overrides?.type ?? typeFilter) || undefined,
         city: (overrides?.city ?? cityFilter) || undefined,
@@ -36,6 +42,8 @@ const InvestPage: React.FC = () => {
         purpose: 'invest',
       })
       setItems(res)
+      setHasMore(res.length === PAGE_SIZE)
+      setPage(targetPage)
     }catch(e:any){ setError(String(e)) }
     setLoading(false)
   }
@@ -61,7 +69,7 @@ const InvestPage: React.FC = () => {
     setBedroomsFilter(urlBedrooms)
     setMatched(urlMatch)
 
-    fetch({ q: urlQ, type: urlType, city: urlCity, status: urlStatus, sort: urlSort })
+    fetch({ q: urlQ, type: urlType, city: urlCity, status: urlStatus, sort: urlSort, page: 1 })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -84,14 +92,24 @@ const InvestPage: React.FC = () => {
 
   function handleSearch() {
     syncUrl({})
-    fetch()
+    fetch({ page: 1 })
   }
 
   function handleClear() {
     setQ(''); setTypeFilter(''); setCityFilter(''); setStatusFilter(''); setSort('')
     setBudgetFilter(''); setBedroomsFilter(''); setMatched(false)
     navigate('/invest', { replace: true })
-    fetch({ q: '', type: '', city: '', status: '', sort: '' })
+    fetch({ q: '', type: '', city: '', status: '', sort: '', page: 1 })
+  }
+
+  function handlePrevPage() {
+    if (page <= 1) return
+    fetch({ page: page - 1 })
+  }
+
+  function handleNextPage() {
+    if (!hasMore) return
+    fetch({ page: page + 1 })
   }
 
   // Budget and bedrooms are applied client-side as "soft" filters
@@ -114,14 +132,14 @@ const InvestPage: React.FC = () => {
 
   return (
     <div>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:12,marginBottom:12}}>
         <div>
           <h2>Find Your Next Property Investment</h2>
           <p style={{color:'var(--text-secondary)',margin:0}}>Explore properties with investment opportunities</p>
         </div>
-        <div style={{display:'flex',gap:8}}>
-          <input className="input" placeholder="Search by name, location or type" value={q} onChange={e=>setQ(e.target.value)} />
-          <button className="button" onClick={handleSearch}>Search</button>
+        <div style={{display:'flex',gap:8,flex:'1 1 320px',maxWidth:420}}>
+          <input className="input" style={{flex:1,minWidth:0}} placeholder="Search by name, location or type" value={q} onChange={e=>setQ(e.target.value)} />
+          <button className="button" style={{flexShrink:0}} onClick={handleSearch}>Search</button>
         </div>
       </div>
 
@@ -160,6 +178,8 @@ const InvestPage: React.FC = () => {
         error={error}
         emptyMessage={activeFilterCount > 0 ? 'No properties match these filters. Try widening your search.' : 'No investment properties available. Try a different search.'}
       />
+
+      <Pagination page={page} hasMore={hasMore} onPrev={handlePrevPage} onNext={handleNextPage} loading={loading} />
 
       <div style={{marginTop:24,padding:16,background:'var(--bg-secondary)',borderRadius:8}}>
         <h3 style={{marginTop:0}}>Understanding Property Investment</h3>

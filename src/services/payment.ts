@@ -52,6 +52,11 @@ export interface PaymentOverview {
   overdue_payments: number
 }
 
+// FIX: this was the direct cause of the "Failed to load payments: Not Found"
+// error. VITE_API_BASE already includes `/api` (see property.ts / admin.ts),
+// so the old `/api/payments/...` paths here resolved to `.../api/api/payments/...`,
+// which FastAPI has never served — hence the 404. Removed the duplicate prefix
+// from every call below.
 export const paymentService = {
   list: async (params?: {
     skip?: number
@@ -70,16 +75,16 @@ export const paymentService = {
     if (params?.tenant_id) queryParams.append('tenant_id', params.tenant_id.toString())
     if (params?.lease_id) queryParams.append('lease_id', params.lease_id.toString())
     if (params?.status) queryParams.append('status', params.status)
-    
-    return api.request<Payment[]>(`/api/payments/?${queryParams}`)
+
+    return api.request<Payment[]>(`/payments/?${queryParams}`)
   },
 
   get: async (paymentId: number) => {
-    return api.request<Payment>(`/api/payments/${paymentId}`)
+    return api.request<Payment>(`/payments/${paymentId}`)
   },
 
   create: async (data: PaymentCreate) => {
-    return api.request<Payment>('/api/payments/', {
+    return api.request<Payment>(`/payments/`, {
       method: 'POST',
       body: JSON.stringify(data),
       headers: { 'Content-Type': 'application/json' }
@@ -87,7 +92,7 @@ export const paymentService = {
   },
 
   update: async (paymentId: number, data: PaymentUpdate) => {
-    return api.request<Payment>(`/api/payments/${paymentId}`, {
+    return api.request<Payment>(`/payments/${paymentId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
       headers: { 'Content-Type': 'application/json' }
@@ -95,7 +100,7 @@ export const paymentService = {
   },
 
   delete: async (paymentId: number) => {
-    return api.request<void>(`/api/payments/${paymentId}`, {
+    return api.request<void>(`/payments/${paymentId}`, {
       method: 'DELETE'
     })
   },
@@ -109,8 +114,8 @@ export const paymentService = {
     if (params?.skip) queryParams.append('skip', params.skip.toString())
     if (params?.limit) queryParams.append('limit', params.limit.toString())
     if (params?.status) queryParams.append('status', params.status)
-    
-    return api.request<Payment[]>(`/api/payments/tenants/${tenantId}/payments?${queryParams}`)
+
+    return api.request<Payment[]>(`/payments/tenants/${tenantId}/payments?${queryParams}`)
   },
 
   getPropertyPayments: async (propertyId: number, params?: {
@@ -122,8 +127,8 @@ export const paymentService = {
     if (params?.skip) queryParams.append('skip', params.skip.toString())
     if (params?.limit) queryParams.append('limit', params.limit.toString())
     if (params?.status) queryParams.append('status', params.status)
-    
-    return api.request<Payment[]>(`/api/payments/properties/${propertyId}/payments?${queryParams}`)
+
+    return api.request<Payment[]>(`/payments/properties/${propertyId}/payments?${queryParams}`)
   },
 
   getLeasePayments: async (leaseId: number, params?: {
@@ -135,8 +140,8 @@ export const paymentService = {
     if (params?.skip) queryParams.append('skip', params.skip.toString())
     if (params?.limit) queryParams.append('limit', params.limit.toString())
     if (params?.status) queryParams.append('status', params.status)
-    
-    return api.request<Payment[]>(`/api/payments/leases/${leaseId}/payments?${queryParams}`)
+
+    return api.request<Payment[]>(`/payments/leases/${leaseId}/payments?${queryParams}`)
   },
 
   getOverview: async (params?: {
@@ -144,7 +149,7 @@ export const paymentService = {
   }) => {
     const queryParams = new URLSearchParams()
     if (params?.property_id) queryParams.append('property_id', params.property_id.toString())
-    
-    return api.request<PaymentOverview>(`/api/payments/overview?${queryParams}`)
+
+    return api.request<PaymentOverview>(`/payments/overview?${queryParams}`)
   }
 }

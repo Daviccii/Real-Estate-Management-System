@@ -54,6 +54,9 @@ export interface MaintenanceResolve {
   cost?: string
 }
 
+// FIX: removed the hardcoded `/api/` prefix — see lease.ts for the full
+// explanation. VITE_API_BASE already includes `/api`, so these calls were
+// resolving to `.../api/api/maintenance/...` and 404ing.
 export const maintenanceService = {
   list: async (params?: {
     skip?: number
@@ -74,16 +77,16 @@ export const maintenanceService = {
     if (params?.status) queryParams.append('status', params.status)
     if (params?.priority) queryParams.append('priority', params.priority)
     if (params?.assigned_manager_id) queryParams.append('assigned_manager_id', params.assigned_manager_id.toString())
-    
-    return api.request<Maintenance[]>(`/api/maintenance/?${queryParams}`)
+
+    return api.request<Maintenance[]>(`/maintenance/?${queryParams}`)
   },
 
   get: async (requestId: number) => {
-    return api.request<Maintenance>(`/api/maintenance/${requestId}`)
+    return api.request<Maintenance>(`/maintenance/${requestId}`)
   },
 
   create: async (data: MaintenanceCreate) => {
-    return api.request<Maintenance>('/api/maintenance/', {
+    return api.request<Maintenance>(`/maintenance/`, {
       method: 'POST',
       body: JSON.stringify(data),
       headers: { 'Content-Type': 'application/json' }
@@ -91,7 +94,7 @@ export const maintenanceService = {
   },
 
   update: async (requestId: number, data: MaintenanceUpdate) => {
-    return api.request<Maintenance>(`/api/maintenance/${requestId}`, {
+    return api.request<Maintenance>(`/maintenance/${requestId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
       headers: { 'Content-Type': 'application/json' }
@@ -99,13 +102,13 @@ export const maintenanceService = {
   },
 
   delete: async (requestId: number) => {
-    return api.request<void>(`/api/maintenance/${requestId}`, {
+    return api.request<void>(`/maintenance/${requestId}`, {
       method: 'DELETE'
     })
   },
 
   assign: async (requestId: number, data: MaintenanceAssign) => {
-    return api.request<Maintenance>(`/api/maintenance/${requestId}/assign`, {
+    return api.request<Maintenance>(`/maintenance/${requestId}/assign`, {
       method: 'POST',
       body: JSON.stringify(data),
       headers: { 'Content-Type': 'application/json' }
@@ -113,7 +116,7 @@ export const maintenanceService = {
   },
 
   resolve: async (requestId: number, data: MaintenanceResolve) => {
-    return api.request<Maintenance>(`/api/maintenance/${requestId}/resolve`, {
+    return api.request<Maintenance>(`/maintenance/${requestId}/resolve`, {
       method: 'POST',
       body: JSON.stringify(data),
       headers: { 'Content-Type': 'application/json' }
@@ -129,8 +132,8 @@ export const maintenanceService = {
     if (params?.skip) queryParams.append('skip', params.skip.toString())
     if (params?.limit) queryParams.append('limit', params.limit.toString())
     if (params?.status) queryParams.append('status', params.status)
-    
-    return api.request<Maintenance[]>(`/api/maintenance/tenants/${tenantId}/maintenance?${queryParams}`)
+
+    return api.request<Maintenance[]>(`/maintenance/tenants/${tenantId}/maintenance?${queryParams}`)
   },
 
   getPropertyMaintenance: async (propertyId: number, params?: {
@@ -142,7 +145,7 @@ export const maintenanceService = {
     if (params?.skip) queryParams.append('skip', params.skip.toString())
     if (params?.limit) queryParams.append('limit', params.limit.toString())
     if (params?.status) queryParams.append('status', params.status)
-    
-    return api.request<Maintenance[]>(`/api/maintenance/properties/${propertyId}/maintenance?${queryParams}`)
+
+    return api.request<Maintenance[]>(`/maintenance/properties/${propertyId}/maintenance?${queryParams}`)
   }
 }

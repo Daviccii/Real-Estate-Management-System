@@ -6,9 +6,12 @@ import PropertyCard from '../components/PropertyCard'
 import PropertyForm from '../components/PropertyForm'
 import PropertyGrid from '../components/PropertyGrid'
 import PropertyFilters from '../components/PropertyFilters'
+import Pagination from '../components/Pagination'
 import { useToast } from '../components/ToastProvider'
 import { PROPERTY_TYPES, BUDGETS, BEDROOMS, CITY_SUGGESTIONS, budgetBucketBounds, extractPriceValue } from '../data/propertySearchOptions'
 import { PropertyPurpose } from '../data/publicHomeContent'
+
+const PAGE_SIZE = 9
 
 const PURPOSES: { label: string; value: PropertyPurpose | '' }[] = [
   { label: 'All', value: '' },
@@ -24,6 +27,8 @@ const PropertiesPage: React.FC = () => {
   const [error,setError]=useState<string | null>(null)
   const [items,setItems]=useState<Property[] | null>(null)
   const [showForm,setShowForm]=useState(false)
+  const [page,setPage]=useState(1)
+  const [hasMore,setHasMore]=useState(false)
   const [q,setQ]=useState('')
   const [typeFilter,setTypeFilter]=useState('')
   const [cityFilter,setCityFilter]=useState('')
@@ -38,10 +43,11 @@ const PropertiesPage: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const fetch = async (overrides?: { q?: string; type?: string; city?: string; status?: string; sort?: string; purpose?: string }) => {
+  const fetch = async (overrides?: { q?: string; type?: string; city?: string; status?: string; sort?: string; purpose?: string; page?: number }) => {
     setLoading(true); setError(null)
+    const targetPage = overrides?.page ?? page
     try{
-      const res = await propertyService.list({
+      const res = await propertyService.pagedList(targetPage, PAGE_SIZE, {
         search: (overrides?.q ?? q) || undefined,
         property_type: (overrides?.type ?? typeFilter) || undefined,
         city: (overrides?.city ?? cityFilter) || undefined,
@@ -50,6 +56,8 @@ const PropertiesPage: React.FC = () => {
         purpose: (overrides?.purpose ?? purposeFilter) || undefined,
       })
       setItems(res)
+      setHasMore(res.length === PAGE_SIZE)
+      setPage(targetPage)
     }catch(e:any){ setError(String(e)) }
     setLoading(false)
   }
@@ -79,7 +87,7 @@ const PropertiesPage: React.FC = () => {
     setBedroomsFilter(urlBedrooms)
     setMatched(urlMatch)
 
-    fetch({ q: urlQ, type: urlType, city: urlCity, status: urlStatus, sort: urlSort, purpose: urlPurpose })
+    fetch({ q: urlQ, type: urlType, city: urlCity, status: urlStatus, sort: urlSort, purpose: urlPurpose, page: 1 })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -105,14 +113,24 @@ const PropertiesPage: React.FC = () => {
 
   function handleSearch() {
     syncUrl({})
-    fetch()
+    fetch({ page: 1 })
   }
 
   function handleClear() {
     setQ(''); setTypeFilter(''); setCityFilter(''); setStatusFilter(''); setSort('')
     setPurposeFilter(''); setBudgetFilter(''); setBedroomsFilter(''); setMatched(false)
     navigate('/properties', { replace: true })
-    fetch({ q: '', type: '', city: '', status: '', sort: '' })
+    fetch({ q: '', type: '', city: '', status: '', sort: '', page: 1 })
+  }
+
+  function handlePrevPage() {
+    if (page <= 1) return
+    fetch({ page: page - 1 })
+  }
+
+  function handleNextPage() {
+    if (!hasMore) return
+    fetch({ page: page + 1 })
   }
 
   const handleCreate = async (payload:any)=>{
@@ -122,7 +140,7 @@ const PropertiesPage: React.FC = () => {
       if(created){
         addToast({ message: 'Property created', type: 'success' })
         setShowForm(false)
-        await fetch()
+        await fetch({ page: 1 })
       } else {
         addToast({ message: 'Failed to create property', type: 'error' })
       }
@@ -162,24 +180,24 @@ const PropertiesPage: React.FC = () => {
 
   return (
     <div>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:12,marginBottom:12}}>
         <div>
           <h2>{getHeaderTitle()}</h2>
           <p style={{color:'var(--text-secondary)',margin:0}}>{getHeaderSubtitle()}</p>
         </div>
-        <div style={{display:'flex',gap:8}}>
-          <input className="input" placeholder="Search by name, location or type" value={q} onChange={e=>setQ(e.target.value)} />
-          <button className="button" onClick={handleSearch}>Search</button>
-          <button className="button" onClick={()=>setShowForm(true)}>Add Property</button>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          <input className="input" style={{flex:'1 1 220px',minWidth:0}} placeholder="Search by name, location or type" value={q} onChange={e=>setQ(e.target.value)} />
+          <button className="button" style={{flexShrink:0}} onClick={handleSearch}>Search</button>
+          <button className="button" style={{flexShrink:0}} onClick={()=>setShowForm(true)}>Add Property</button>
         </div>
       </div>
 
-      <div style={{display:'flex',gap:8,marginBottom:12}}>
+      <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
         {PURPOSES.map(p => (
           <button
             key={p.label}
             className={purposeFilter === p.value ? 'button' : 'button muted'}
-            onClick={() => { setPurposeFilter(p.value); syncUrl({ purpose: p.value }) }}
+            onClick={() => { setPurposeFilter(p.value); syncUrl({ purpose: p.value }); fetch({ purpose: p.value, page: 1 }) }}
           >
             {p.label}
           </button>
@@ -226,6 +244,8 @@ const PropertiesPage: React.FC = () => {
         error={error}
         emptyMessage={activeFilterCount > 0 ? 'No properties match these filters. Try widening your search.' : 'No properties found. Try a different search.'}
       />
+
+      <Pagination page={page} hasMore={hasMore} onPrev={handlePrevPage} onNext={handleNextPage} loading={loading} />
     </div>
   )
 }

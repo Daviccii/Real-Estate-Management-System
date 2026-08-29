@@ -8,8 +8,11 @@ import Skeleton from '../components/Skeleton'
 import { PUBLIC_FEATURED_PROPERTIES_FALLBACK, PUBLIC_HOME_INTELLIGENCE, PUBLIC_HOME_LOCATIONS, PUBLIC_HOME_STEPS, PUBLIC_PURPOSE_COPY, PropertyPurpose } from '../data/publicHomeContent'
 import { PROPERTY_TYPES, BUDGETS, BEDROOMS } from '../data/propertySearchOptions'
 
-// Real estate hero image from Unsplash
-const HERO_IMAGE = 'https://source.unsplash.com/1200x800/?luxury-apartment,modern&sig=hero'
+// FIX: source.unsplash.com (Unsplash Source) was deprecated and shut down in
+// 2023 — this hero image was silently failing to load. picsum.photos is a
+// stable, still-active placeholder service; a fixed seed keeps the hero
+// looking the same on every load instead of changing randomly.
+const HERO_IMAGE = 'https://picsum.photos/seed/propnoxa-hero/1200/800'
 
 type SearchState = {
   location: string
@@ -394,51 +397,6 @@ export default function Home() {
         <div>
           <span className="pn-section-label">Next step</span>
           <h2>Your Next Property Starts Here.</h2>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          
           <p>Explore listings or create an account to unlock the next layer of the real estate operating system.</p>
         </div>
         <div className="pn-search-actions">
