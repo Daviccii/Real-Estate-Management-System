@@ -13,6 +13,7 @@ import PropertyEditPage from './pages/PropertyEdit'
 import PlaceholderPage from './pages/Placeholder'
 import MainLayout from './layouts/MainLayout'
 import AdminLayout from './layouts/AdminLayout'
+import ManagerLayout from './layouts/ManagerLayout'
 import PublicLayout from './layouts/PublicLayout'
 const Solutions = lazy(() => import('./pages/Solutions'))
 const Features = lazy(() => import('./pages/Features'))
@@ -23,6 +24,7 @@ import { FavoriteProvider } from './contexts/FavoriteContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import ToastProvider from './components/ToastProvider'
 import type { UserRole } from './types'
+
 // Admin pages
 import AdminDashboard from './pages/admin/Dashboard'
 import UsersManagement from './pages/admin/Users'
@@ -37,6 +39,18 @@ import UnitsManagement from './pages/admin/Units'
 import LeasesManagement from './pages/admin/Leases'
 import PaymentsManagement from './pages/admin/Payments'
 import MaintenanceManagement from './pages/admin/Maintenance'
+
+// Manager pages
+import ManagerDashboard from './pages/manager/Dashboard'
+import ManagerProperties from './pages/manager/Properties'
+import ManagerTenants from './pages/manager/Tenants'
+import ManagerLeases from './pages/manager/Leases'
+import ManagerPayments from './pages/manager/Payments'
+import ManagerMaintenance from './pages/manager/Maintenance'
+import ManagerUnits from './pages/manager/Units'
+import ManagerInquiries from './pages/manager/Inquiries'
+import ManagerReports from './pages/manager/Reports'
+import ManagerSettings from './pages/manager/Settings'
 
 const RequireAuth: React.FC = () => {
   const { user, loading } = useAuth()
@@ -134,19 +148,21 @@ const App: React.FC = () => {
                 </Route>
               </Route>
 
-              {/* Manager Portal - Future implementation */}
+              {/* Manager Portal */}
               <Route element={<RequireAuth />}>
                 <Route element={<RequireRole allowedRoles={['manager']} />}>
-                  <Route path="/manager" element={<MainLayout />}>
-                    <Route path="dashboard" element={<PlaceholderPage title="Manager Dashboard" />} />
-                    <Route path="properties" element={<PlaceholderPage title="Properties" />} />
-                    <Route path="properties/new" element={<PlaceholderPage title="New Property" />} />
-                    <Route path="tenants" element={<PlaceholderPage title="Tenants" />} />
-                    <Route path="leases" element={<PlaceholderPage title="Leases" />} />
-                    <Route path="inquiries" element={<PlaceholderPage title="Inquiries" />} />
-                    <Route path="maintenance" element={<PlaceholderPage title="Maintenance" />} />
-                    <Route path="payments" element={<PlaceholderPage title="Payments" />} />
-                    <Route path="profile" element={<PlaceholderPage title="Profile" />} />
+                  <Route path="/manager" element={<ManagerLayout />}>
+                    <Route index element={<ManagerDashboard />} />
+                    <Route path="dashboard" element={<ManagerDashboard />} />
+                    <Route path="properties" element={<ManagerProperties />} />
+                    <Route path="tenants" element={<ManagerTenants />} />
+                    <Route path="leases" element={<ManagerLeases />} />
+                    <Route path="payments" element={<ManagerPayments />} />
+                    <Route path="maintenance" element={<ManagerMaintenance />} />
+                    <Route path="units" element={<ManagerUnits />} />
+                    <Route path="inquiries" element={<ManagerInquiries />} />
+                    <Route path="reports" element={<ManagerReports />} />
+                    <Route path="settings" element={<ManagerSettings />} />
                   </Route>
                 </Route>
               </Route>
