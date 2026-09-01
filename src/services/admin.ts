@@ -99,6 +99,18 @@ export const adminService = {
     })
   },
 
+  // FIX: new — backs the suspend/reactivate action. Previously the only
+  // account-level actions available anywhere in the admin UI were a full
+  // delete or a role change; there was no way to temporarily disable an
+  // account.
+  async updateUserStatus(userId: number, isActive: boolean): Promise<{ id: number; email: string; is_active: boolean; message: string }> {
+    return api.request(`/admin/users/${userId}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_active: isActive })
+    })
+  },
+
   async getProperties(params?: { status?: string; skip?: number; limit?: number }): Promise<AdminProperty[]> {
     const queryString = new URLSearchParams()
     if (params?.status) queryString.append('status', params.status)
@@ -115,6 +127,17 @@ export const adminService = {
 
   async updateProperty(propertyId: number, data: Partial<AdminProperty>): Promise<AdminProperty> {
     return api.request(`/admin/properties/${propertyId}`, { 
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+  },
+
+  // FIX: new — admin-only reassignment of a property's owner/manager.
+  // There was previously no way to do this at all; updateProperty() above
+  // can't touch owner_id/manager_id since PropertyUpdate doesn't include them.
+  async reassignProperty(propertyId: number, data: { owner_id?: number; manager_id?: number }): Promise<{ id: number; name: string; owner_id: number; manager_id: number | null; message: string }> {
+    return api.request(`/admin/properties/${propertyId}/reassign`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -143,3 +166,5 @@ export const adminService = {
     return api.request('/admin/market-insights')
   }
 }
+
+export type { AdminUser, AdminProperty, AdminInquiry, MarketInsights, DashboardStats }

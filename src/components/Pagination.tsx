@@ -7,10 +7,14 @@ interface PaginationProps {
   onPrev: () => void
   onNext: () => void
   loading?: boolean
+  /** Total pages, when known (from propertyService.count()). Omit to fall back to "Page N" only. */
+  totalPages?: number
 }
 
-const Pagination: React.FC<PaginationProps> = ({ page, hasMore, onPrev, onNext, loading = false }) => {
-  if (page === 1 && !hasMore) return null
+const Pagination: React.FC<PaginationProps> = ({ page, hasMore, onPrev, onNext, loading = false, totalPages }) => {
+  if (page === 1 && !hasMore && (totalPages === undefined || totalPages <= 1)) return null
+
+  const isLastPage = typeof totalPages === 'number' ? page >= totalPages : !hasMore
 
   return (
     <div className="pn-pagination">
@@ -21,11 +25,13 @@ const Pagination: React.FC<PaginationProps> = ({ page, hasMore, onPrev, onNext, 
       >
         Previous
       </button>
-      <span className="pn-pagination-page">Page {page}</span>
+      <span className="pn-pagination-page">
+        {typeof totalPages === 'number' ? `Page ${page} of ${totalPages}` : `Page ${page}`}
+      </span>
       <button
         className="pn-btn pn-btn-ghost"
         onClick={onNext}
-        disabled={!hasMore || loading}
+        disabled={isLastPage || loading}
       >
         Next
       </button>

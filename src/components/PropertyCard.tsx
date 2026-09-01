@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Property } from '../types'
 import { Link } from 'react-router-dom'
 import { useFavorites } from '../contexts/FavoriteContext'
 import { useAuth } from '../contexts/AuthContext'
 import { NON_RESIDENTIAL_TYPES } from '../data/propertySearchOptions'
+import { resolvePropertyImage, placeholderPropertyImage } from '../utils/propertyImages'
 
 type PropertyCardProps = {
   p: Property
@@ -25,17 +26,6 @@ function formatPrice(property: Property) {
   return null
 }
 
-// FIX: this previously called source.unsplash.com/... — Unsplash Source was
-// deprecated and shut down in 2023, so every card without a real image_url
-// silently failed to load and fell back to the empty grey CSS gradient seen
-// on the Explore page. picsum.photos is a stable, still-active placeholder
-// service; seeding it with the property id keeps the same property showing
-// the same image on every visit instead of a random one each render.
-function getRealEstateImage(property: Property): string {
-  if (property.image_url) return property.image_url
-  return `https://picsum.photos/seed/propnoxa-${property.id}/640/420`
-}
-
 // FIX: a warehouse or a plot of land showing "0 beds · 0 baths" reads as a
 // data error rather than as "not applicable". Hide those badges entirely for
 // property types that don't logically carry a bedroom/bathroom count instead
@@ -51,7 +41,17 @@ const PropertyCard: React.FC<PropertyCardProps> = ({p, variant = 'default', onFa
   const actuallyIsFavorite = checkFavorite(p.id) || isSaved
   const canFavorite = user && onFavoriteToggle
 
-  const img = getRealEstateImage(p)
+  // Show a stable placeholder immediately, then swap in a real Pexels photo
+  // once resolved (or an explicit image_url, which resolvePropertyImage
+  // always prefers). Never blocks the card's initial render on the network.
+  const [img, setImg] = useState(() => placeholderPropertyImage(p))
+  useEffect(() => {
+    let cancelled = false
+    setImg(placeholderPropertyImage(p))
+    resolvePropertyImage(p).then((url) => { if (!cancelled) setImg(url) })
+    return () => { cancelled = true }
+  }, [p.id, p.image_url, p.property_type, p.purpose])
+
   const price = formatPrice(p)
   const area = formatArea(p.area)
   const location = [p.city, p.country].filter(Boolean).join(', ') || p.address || 'Location available on request'

@@ -7,32 +7,12 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import { useToast } from '../components/ToastProvider'
 import { useFavorites } from '../contexts/FavoriteContext'
 import { useAuth } from '../contexts/AuthContext'
+import { NON_RESIDENTIAL_TYPES } from '../data/propertySearchOptions'
+import { resolvePropertyImage, placeholderPropertyImage } from '../utils/propertyImages'
 
-function getRealEstateImage(property: Property): string {
-  if (property.image_url) return property.image_url
-  
-  const type = (property.property_type || '').toLowerCase()
-  const purpose = (property.purpose || '').toLowerCase()
-  
-  // Generate relevant keywords based on property type and purpose
-  let keywords = 'real-estate'
-  
-  if (type.includes('residential') || type.includes('apartment')) {
-    keywords = purpose === 'rent' ? 'apartment,interior' : 'luxury-apartment,exterior'
-  } else if (type.includes('villa') || type.includes('bungalow')) {
-    keywords = 'house,exterior'
-  } else if (type.includes('commercial') || type.includes('office')) {
-    keywords = 'office-building,modern'
-  } else if (type.includes('mixed')) {
-    keywords = 'mixed-use-building'
-  } else if (type.includes('industrial')) {
-    keywords = 'industrial-building'
-  } else {
-    keywords = 'building,architecture'
-  }
-  
-  // Use Unsplash Source for real estate images
-  return `https://source.unsplash.com/1200x800/?${encodeURIComponent(keywords)}&sig=${property.id}`
+function isResidentialType(propertyType?: string | null): boolean {
+  if (!propertyType) return true
+  return !NON_RESIDENTIAL_TYPES.includes(propertyType)
 }
 
 const PropertyDetailsPage: React.FC = () => {
@@ -41,6 +21,7 @@ const PropertyDetailsPage: React.FC = () => {
   const location = useLocation()
   const [item,setItem]=useState<Property | null>(null)
   const [loading,setLoading]=useState(false)
+  const [img,setImg]=useState<string | null>(null)
   const [showConfirm,setShowConfirm]=useState(false)
   const [showInquiry,setShowInquiry]=useState(false)
   const [inquiryMessage,setInquiryMessage]=useState('')
@@ -76,11 +57,29 @@ const PropertyDetailsPage: React.FC = () => {
     return 'Back to Properties'
   }
 
+  // FIX: previously called propertyService.get(), which hits the
+  // authenticated GET /properties/{id} route. That route explicitly rejects
+  // anyone who isn't the property's owner or an admin (403 "Not authorized to
+  // view this property") — so any buyer clicking "View Details" on a listing
+  // that wasn't theirs got an error instead of the page. getPublic() calls
+  // the new open /properties/public/{id} route instead. The owner/admin-only
+  // management actions below still gate correctly since they separately check
+  // user.id === item.owner_id.
   useEffect(()=>{
     if(!id) return
     setLoading(true)
-    propertyService.get(Number(id)).then(r=>setItem(r)).catch(()=>{}).finally(()=>setLoading(false))
+    propertyService.getPublic(Number(id)).then(r=>setItem(r)).catch(()=>{}).finally(()=>setLoading(false))
   },[id])
+
+  // Resolve a real photo (Pexels, when configured) the same way PropertyCard
+  // does, instead of the old dead Unsplash Source call duplicated here.
+  useEffect(()=>{
+    if(!item) return
+    let cancelled = false
+    setImg(placeholderPropertyImage(item))
+    resolvePropertyImage(item).then((url) => { if (!cancelled) setImg(url) })
+    return () => { cancelled = true }
+  },[item?.id, item?.image_url, item?.property_type, item?.purpose])
 
   const handleDelete = async ()=>{
     if(!id) return
@@ -161,15 +160,14 @@ const PropertyDetailsPage: React.FC = () => {
     )
   }
 
+  const showBedBath = isResidentialType(item.property_type)
+
   const renderPriceInfo = () => {
     if (item.purpose === 'rent') {
       return (
         <div className="card" style={{marginBottom:16}}>
           <h3>Rental Information</h3>
           <p><strong>Monthly Rent:</strong> {item.price_label || item.price || 'Not specified'}</p>
-          {item.deposit && <p><strong>Deposit:</strong> {item.deposit}</p>}
-          {item.lease_term && <p><strong>Lease Term:</strong> {item.lease_term}</p>}
-          {item.availability_date && <p><strong>Available:</strong> {new Date(item.availability_date).toLocaleDateString()}</p>}
         </div>
       )
     }
@@ -203,26 +201,12 @@ const PropertyDetailsPage: React.FC = () => {
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(300px,1fr))',gap:24}}>
         {/* Left Column - Property Info */}
         <div>
-          {/* Property Image/Placeholder */}
+          {/* Property Image */}
           <div className="card" style={{marginBottom:16,aspectRatio:'16/9',background:'var(--bg-secondary)',display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,overflow:'hidden'}}>
             <img 
-              src={getRealEstateImage(item)} 
+              src={img ?? placeholderPropertyImage(item)} 
               alt={item.name} 
               style={{width:'100%',height:'100%',objectFit:'cover'}} 
-              onError={(e) => {
-                // Fallback to placeholder if image fails to load
-                const target = e.target as HTMLImageElement
-                target.style.display = 'none'
-                const parent = target.parentElement
-                if (parent) {
-                  parent.innerHTML = `
-                    <div style="text-align:center;color:var(--text-secondary);">
-                      <div style="font-size:3em;margin-bottom:8;">🏠</div>
-                      <div>Property Image</div>
-                    </div>
-                  `
-                }
-              }}
             />
           </div>
 
@@ -251,13 +235,13 @@ const PropertyDetailsPage: React.FC = () => {
                 <div style={{fontSize:'0.85em',color:'var(--text-secondary)'}}>Type</div>
                 <div style={{fontWeight:600}}>{item.property_type || 'Not specified'}</div>
               </div>
-              {item.bedrooms !== null && (
+              {showBedBath && item.bedrooms !== null && (
                 <div>
                   <div style={{fontSize:'0.85em',color:'var(--text-secondary)'}}>Bedrooms</div>
                   <div style={{fontWeight:600}}>{item.bedrooms}</div>
                 </div>
               )}
-              {item.bathrooms !== null && (
+              {showBedBath && item.bathrooms !== null && (
                 <div>
                   <div style={{fontSize:'0.85em',color:'var(--text-secondary)'}}>Bathrooms</div>
                   <div style={{fontWeight:600}}>{item.bathrooms}</div>
@@ -360,12 +344,6 @@ const PropertyDetailsPage: React.FC = () => {
               
               <span style={{color:'var(--text-secondary)'}}>County:</span>
               <span>{item.county || 'Not specified'}</span>
-              
-              <span style={{color:'var(--text-secondary)'}}>Listed:</span>
-              <span>{new Date(item.created_at).toLocaleDateString()}</span>
-              
-              <span style={{color:'var(--text-secondary)'}}>Updated:</span>
-              <span>{new Date(item.updated_at).toLocaleDateString()}</span>
             </div>
           </div>
         </div>

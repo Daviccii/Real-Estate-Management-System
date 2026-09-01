@@ -8,6 +8,7 @@ import PropertyGrid from '../components/PropertyGrid'
 import PropertyFilters from '../components/PropertyFilters'
 import Pagination from '../components/Pagination'
 import { useToast } from '../components/ToastProvider'
+import { useAuth } from '../contexts/AuthContext'
 import { PROPERTY_TYPES, BUDGETS, BEDROOMS, CITY_SUGGESTIONS, budgetBucketBounds, extractPriceValue } from '../data/propertySearchOptions'
 import { PropertyPurpose } from '../data/publicHomeContent'
 
@@ -29,6 +30,7 @@ const PropertiesPage: React.FC = () => {
   const [showForm,setShowForm]=useState(false)
   const [page,setPage]=useState(1)
   const [hasMore,setHasMore]=useState(false)
+  const [totalPages,setTotalPages]=useState<number | undefined>(undefined)
   const [q,setQ]=useState('')
   const [typeFilter,setTypeFilter]=useState('')
   const [cityFilter,setCityFilter]=useState('')
@@ -40,23 +42,32 @@ const PropertiesPage: React.FC = () => {
   const [matched,setMatched]=useState(false)
 
   const { addToast } = useToast()
+  // FIX: creation is now backend-restricted to agent/manager/admin (see
+  // properties.py). Showing "Add Property" to every logged-in user meant
+  // plain buyer/tenant accounts would hit a 403 after filling out the form.
+  const { hasAnyRole } = useAuth()
+  const canAddProperty = hasAnyRole(['agent', 'manager', 'admin'])
   const navigate = useNavigate()
   const location = useLocation()
 
   const fetch = async (overrides?: { q?: string; type?: string; city?: string; status?: string; sort?: string; purpose?: string; page?: number }) => {
     setLoading(true); setError(null)
     const targetPage = overrides?.page ?? page
+    const filterParams = {
+      search: (overrides?.q ?? q) || undefined,
+      property_type: (overrides?.type ?? typeFilter) || undefined,
+      city: (overrides?.city ?? cityFilter) || undefined,
+      status: (overrides?.status ?? statusFilter) || undefined,
+      purpose: (overrides?.purpose ?? purposeFilter) || undefined,
+    }
     try{
-      const res = await propertyService.pagedList(targetPage, PAGE_SIZE, {
-        search: (overrides?.q ?? q) || undefined,
-        property_type: (overrides?.type ?? typeFilter) || undefined,
-        city: (overrides?.city ?? cityFilter) || undefined,
-        status: (overrides?.status ?? statusFilter) || undefined,
-        sort: (overrides?.sort ?? sort) || undefined,
-        purpose: (overrides?.purpose ?? purposeFilter) || undefined,
-      })
+      const [res, total] = await Promise.all([
+        propertyService.pagedList(targetPage, PAGE_SIZE, { ...filterParams, sort: (overrides?.sort ?? sort) || undefined }),
+        propertyService.count(filterParams),
+      ])
       setItems(res)
       setHasMore(res.length === PAGE_SIZE)
+      setTotalPages(Math.max(1, Math.ceil(total / PAGE_SIZE)))
       setPage(targetPage)
     }catch(e:any){ setError(String(e)) }
     setLoading(false)
@@ -129,7 +140,7 @@ const PropertiesPage: React.FC = () => {
   }
 
   function handleNextPage() {
-    if (!hasMore) return
+    if (typeof totalPages === 'number' ? page >= totalPages : !hasMore) return
     fetch({ page: page + 1 })
   }
 
@@ -188,7 +199,9 @@ const PropertiesPage: React.FC = () => {
         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
           <input className="input" style={{flex:'1 1 220px',minWidth:0}} placeholder="Search by name, location or type" value={q} onChange={e=>setQ(e.target.value)} />
           <button className="button" style={{flexShrink:0}} onClick={handleSearch}>Search</button>
-          <button className="button" style={{flexShrink:0}} onClick={()=>setShowForm(true)}>Add Property</button>
+          {canAddProperty && (
+            <button className="button" style={{flexShrink:0}} onClick={()=>setShowForm(true)}>Add Property</button>
+          )}
         </div>
       </div>
 
@@ -245,7 +258,7 @@ const PropertiesPage: React.FC = () => {
         emptyMessage={activeFilterCount > 0 ? 'No properties match these filters. Try widening your search.' : 'No properties found. Try a different search.'}
       />
 
-      <Pagination page={page} hasMore={hasMore} onPrev={handlePrevPage} onNext={handleNextPage} loading={loading} />
+      <Pagination page={page} hasMore={hasMore} totalPages={totalPages} onPrev={handlePrevPage} onNext={handleNextPage} loading={loading} />
     </div>
   )
 }

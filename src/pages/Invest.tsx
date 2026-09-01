@@ -16,6 +16,7 @@ const InvestPage: React.FC = () => {
   const [items,setItems]=useState<Property[] | null>(null)
   const [page,setPage]=useState(1)
   const [hasMore,setHasMore]=useState(false)
+  const [totalPages,setTotalPages]=useState<number | undefined>(undefined)
   const [q,setQ]=useState('')
   const [typeFilter,setTypeFilter]=useState('')
   const [cityFilter,setCityFilter]=useState('')
@@ -32,17 +33,21 @@ const InvestPage: React.FC = () => {
   const fetch = async (overrides?: { q?: string; type?: string; city?: string; status?: string; sort?: string; page?: number }) => {
     setLoading(true); setError(null)
     const targetPage = overrides?.page ?? page
+    const filterParams = {
+      search: (overrides?.q ?? q) || undefined,
+      property_type: (overrides?.type ?? typeFilter) || undefined,
+      city: (overrides?.city ?? cityFilter) || undefined,
+      status: (overrides?.status ?? statusFilter) || undefined,
+      purpose: 'invest' as const,
+    }
     try{
-      const res = await propertyService.pagedList(targetPage, PAGE_SIZE, {
-        search: (overrides?.q ?? q) || undefined,
-        property_type: (overrides?.type ?? typeFilter) || undefined,
-        city: (overrides?.city ?? cityFilter) || undefined,
-        status: (overrides?.status ?? statusFilter) || undefined,
-        sort: (overrides?.sort ?? sort) || undefined,
-        purpose: 'invest',
-      })
+      const [res, total] = await Promise.all([
+        propertyService.pagedList(targetPage, PAGE_SIZE, { ...filterParams, sort: (overrides?.sort ?? sort) || undefined }),
+        propertyService.count(filterParams),
+      ])
       setItems(res)
       setHasMore(res.length === PAGE_SIZE)
+      setTotalPages(Math.max(1, Math.ceil(total / PAGE_SIZE)))
       setPage(targetPage)
     }catch(e:any){ setError(String(e)) }
     setLoading(false)
@@ -108,7 +113,7 @@ const InvestPage: React.FC = () => {
   }
 
   function handleNextPage() {
-    if (!hasMore) return
+    if (typeof totalPages === 'number' ? page >= totalPages : !hasMore) return
     fetch({ page: page + 1 })
   }
 
@@ -179,7 +184,7 @@ const InvestPage: React.FC = () => {
         emptyMessage={activeFilterCount > 0 ? 'No properties match these filters. Try widening your search.' : 'No investment properties available. Try a different search.'}
       />
 
-      <Pagination page={page} hasMore={hasMore} onPrev={handlePrevPage} onNext={handleNextPage} loading={loading} />
+      <Pagination page={page} hasMore={hasMore} totalPages={totalPages} onPrev={handlePrevPage} onNext={handleNextPage} loading={loading} />
 
       <div style={{marginTop:24,padding:16,background:'var(--bg-secondary)',borderRadius:8}}>
         <h3 style={{marginTop:0}}>Understanding Property Investment</h3>

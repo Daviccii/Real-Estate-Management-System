@@ -2,6 +2,20 @@ import { api } from './api'
 import { Property } from '../types'
 import { getToken } from './token'
 
+// Always uses the public endpoint for browsing — see list() below for why.
+const buildQuery = (params?: { skip?: number; limit?: number; search?: string; property_type?: string; city?: string; status?: string; sort?: string; purpose?: string }) => {
+  const qs = new URLSearchParams()
+  if (typeof params?.skip === 'number') qs.set('skip', String(params.skip))
+  if (typeof params?.limit === 'number') qs.set('limit', String(params.limit))
+  if (params?.search) qs.set('search', params.search)
+  if (params?.property_type) qs.set('property_type', params.property_type)
+  if (params?.city) qs.set('city', params.city)
+  if (params?.status) qs.set('status', params.status)
+  if (params?.sort) qs.set('sort', params.sort)
+  if (params?.purpose) qs.set('purpose', params.purpose)
+  return qs.toString()
+}
+
 // FIX: previously branched to the authenticated '/properties' endpoint
 // whenever getToken() returned truthy — including a stale/expired token left
 // over from a previous session. That made GET /properties run through
@@ -12,22 +26,21 @@ import { getToken } from './token'
 // always use the public endpoint for browsing, same as meta() and
 // marketInsights() below already do.
 const list = async (params?: { skip?: number; limit?: number; search?: string; property_type?: string; city?: string; status?: string; sort?: string; purpose?: string }): Promise<Property[]> => {
-  const qs = new URLSearchParams()
-  if (typeof params?.skip === 'number') qs.set('skip', String(params.skip))
-  if (typeof params?.limit === 'number') qs.set('limit', String(params.limit))
-  if (params?.search) qs.set('search', params.search)
-  if (params?.property_type) qs.set('property_type', params.property_type)
-  if (params?.city) qs.set('city', params.city)
-  if (params?.status) qs.set('status', params.status)
-  if (params?.sort) qs.set('sort', params.sort)
-  if (params?.purpose) qs.set('purpose', params.purpose)
-  const query = qs.toString()
+  const query = buildQuery(params)
   return api.request(query ? `/properties/public?${query}` : '/properties/public')
 }
 
 const pagedList = async (page = 1, limit = 6, params?: { search?: string; property_type?: string; city?: string; status?: string; sort?: string; purpose?: string }): Promise<Property[]> => {
   const skip = Math.max(0, (page - 1) * limit)
   return list(Object.assign({}, params || {}, { skip, limit }))
+}
+
+// Total count of properties matching the given filters (no skip/limit/sort) —
+// backs real "Page X of Y" pagination instead of inferring from a full page.
+const count = async (params?: { search?: string; property_type?: string; city?: string; status?: string; purpose?: string }): Promise<number> => {
+  const query = buildQuery(params)
+  const res = await api.request<{ total: number }>(query ? `/properties/public/count?${query}` : '/properties/public/count')
+  return res?.total ?? 0
 }
 
 // FIX: previously this branched on getToken() the same way `list()` used to,
@@ -52,8 +65,17 @@ const marketInsights = async (): Promise<{
   return api.request('/properties/public/market-insights')
 }
 
+// Authenticated single-property lookup — used by the owner/admin edit flow
+// only (PropertyEdit.tsx). Enforces the ownership/admin check server-side.
 const get = async (id: number): Promise<Property | null> => {
   return api.request(`/properties/${id}`)
+}
+
+// FIX: new — public single-property lookup with no auth/ownership check.
+// PropertyDetailsPage should use this instead of get(), since any visitor
+// viewing a listing (not just its owner) needs to see its details.
+const getPublic = async (id: number): Promise<Property | null> => {
+  return api.request(`/properties/public/${id}`)
 }
 
 const create = async (payload: Partial<Property>): Promise<Property | null> => {
@@ -75,4 +97,4 @@ const remove = async (id: number): Promise<boolean> => {
   return true
 }
 
-export const propertyService = { list, pagedList, meta, marketInsights, get, create, update, delete: remove }
+export const propertyService = { list, pagedList, count, meta, marketInsights, get, getPublic, create, update, delete: remove }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { adminService } from '../../services/admin'
 import type { AdminUser } from '../../services/admin'
+import { useToast } from '../../components/ToastProvider'
 
 interface RoleUsersProps {
   role: string
@@ -13,6 +14,7 @@ const RoleUsers: React.FC<RoleUsersProps> = ({ role, title, description }) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const { addToast } = useToast()
 
   useEffect(() => {
     loadUsers()
@@ -31,6 +33,16 @@ const RoleUsers: React.FC<RoleUsersProps> = ({ role, title, description }) => {
     }
   }
 
+  const handleToggleStatus = async (user: AdminUser) => {
+    try {
+      await adminService.updateUserStatus(user.id, !user.is_active)
+      addToast({ message: `${user.email} ${!user.is_active ? 'reactivated' : 'suspended'}`, type: 'success' })
+      loadUsers()
+    } catch (err: any) {
+      addToast({ message: err?.message || 'Failed to update account status', type: 'error' })
+    }
+  }
+
   const filteredUsers = users.filter(user => {
     const matchesSearch = !searchTerm || 
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -38,15 +50,20 @@ const RoleUsers: React.FC<RoleUsersProps> = ({ role, title, description }) => {
     return matchesSearch
   })
 
+  // FIX: 'manager' used var(--primary), which renders near-invisible against
+  // this table's white background (same root cause as the "BUY" purpose
+  // badge bug on the Properties Management page). Explicit hex values here
+  // instead of depending on a CSS var whose actual resolved value wasn't
+  // verified.
   const getRoleBadgeColor = (userRole: string) => {
     const colors: Record<string, string> = {
-      admin: 'var(--danger)',
-      manager: 'var(--primary)',
-      agent: 'var(--success)',
-      tenant: 'var(--warning)',
-      user: 'var(--muted)'
+      admin: '#dc2626',
+      manager: '#2648e6',
+      agent: '#16a34a',
+      tenant: '#d97706',
+      user: '#64748b'
     }
-    return colors[userRole] || 'var(--muted)'
+    return colors[userRole] || '#64748b'
   }
 
   if (loading) {
@@ -105,6 +122,7 @@ const RoleUsers: React.FC<RoleUsersProps> = ({ role, title, description }) => {
                 <th style={{ textAlign: 'left', padding: 12, fontWeight: 600 }}>Role</th>
                 <th style={{ textAlign: 'left', padding: 12, fontWeight: 600 }}>Status</th>
                 <th style={{ textAlign: 'left', padding: 12, fontWeight: 600 }}>Created</th>
+                <th style={{ textAlign: 'right', padding: 12, fontWeight: 600 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -130,11 +148,20 @@ const RoleUsers: React.FC<RoleUsersProps> = ({ role, title, description }) => {
                       color: user.is_active ? 'var(--success)' : 'var(--danger)',
                       fontWeight: 600
                     }}>
-                      {user.is_active ? 'Active' : 'Inactive'}
+                      {user.is_active ? 'Active' : 'Suspended'}
                     </span>
                   </td>
                   <td style={{ padding: 12, fontSize: 12 }}>
                     {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+                  </td>
+                  <td style={{ padding: 12, textAlign: 'right' }}>
+                    <button
+                      className={user.is_active ? 'button danger' : 'button'}
+                      style={{ padding: '4px 8px', fontSize: 12 }}
+                      onClick={() => handleToggleStatus(user)}
+                    >
+                      {user.is_active ? 'Suspend' : 'Reactivate'}
+                    </button>
                   </td>
                 </tr>
               ))}
