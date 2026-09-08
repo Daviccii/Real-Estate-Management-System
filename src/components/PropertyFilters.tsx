@@ -26,10 +26,17 @@ interface PropertyFiltersProps {
   showBedroomsFilter?: boolean
 }
 
+// FIX: previously listed 'vacant' and 'under_maintenance', which never
+// exist in the data — every Property row uses one of
+// active/inactive/pending/sold/rented (see property.py model, PropertyForm,
+// seed_properties.py). Selecting either old option silently returned zero
+// results on every page that renders this filter (Buy/Rent/Invest/Explore).
 const STATUS_LABELS: Record<string, string> = {
   active: 'Active',
-  vacant: 'Vacant',
-  under_maintenance: 'Under maintenance',
+  inactive: 'Inactive',
+  pending: 'Pending',
+  sold: 'Sold',
+  rented: 'Rented',
 }
 
 const PropertyFilters: React.FC<PropertyFiltersProps> = ({
@@ -123,8 +130,10 @@ const PropertyFilters: React.FC<PropertyFiltersProps> = ({
           <select value={statusFilter} onChange={e=>onStatusChange(e.target.value)}>
             <option value="">Any status</option>
             <option value="active">Active</option>
-            <option value="vacant">Vacant</option>
-            <option value="under_maintenance">Under maintenance</option>
+            <option value="inactive">Inactive</option>
+            <option value="pending">Pending</option>
+            <option value="sold">Sold</option>
+            <option value="rented">Rented</option>
           </select>
         </label>
 
