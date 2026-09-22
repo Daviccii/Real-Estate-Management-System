@@ -11,6 +11,8 @@ import { useToast } from '../components/ToastProvider'
 import { useAuth } from '../contexts/AuthContext'
 import { PROPERTY_TYPES, BUDGETS, BEDROOMS, CITY_SUGGESTIONS, budgetBucketBounds, extractPriceValue } from '../data/propertySearchOptions'
 import { PropertyPurpose } from '../data/publicHomeContent'
+import SmartMatchModal from '../components/SmartMatchModal'
+import PropertyComparisonModal from '../components/PropertyComparisonModal'
 
 const PAGE_SIZE = 9
 
@@ -40,6 +42,9 @@ const PropertiesPage: React.FC = () => {
   const [budgetFilter,setBudgetFilter]=useState('')
   const [bedroomsFilter,setBedroomsFilter]=useState('')
   const [matched,setMatched]=useState(false)
+  const [showSmartMatch, setShowSmartMatch] = useState(false)
+  const [showCompare, setShowCompare] = useState(false)
+  const [compareItems, setCompareItems] = useState<Property[]>([])
 
   const { addToast } = useToast()
   // FIX: creation is now backend-restricted to agent/manager/admin (see
@@ -196,9 +201,34 @@ const PropertiesPage: React.FC = () => {
           <h2>{getHeaderTitle()}</h2>
           <p style={{color:'var(--text-secondary)',margin:0}}>{getHeaderSubtitle()}</p>
         </div>
-        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
           <input className="input" style={{flex:'1 1 220px',minWidth:0}} placeholder="Search by name, location or type" value={q} onChange={e=>setQ(e.target.value)} />
           <button className="button" style={{flexShrink:0}} onClick={handleSearch}>Search</button>
+          <button
+            className="button"
+            style={{
+              flexShrink:0,
+              background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+              borderColor: '#6d28d9',
+              color: 'white',
+              fontWeight: 700
+            }}
+            onClick={() => setShowSmartMatch(true)}
+          >
+            ⚡ AI Matchmaker
+          </button>
+          <button
+            className="button muted"
+            style={{flexShrink:0}}
+            onClick={() => {
+              if (compareItems.length === 0 && filtered && filtered.length > 0) {
+                setCompareItems(filtered.slice(0, 4))
+              }
+              setShowCompare(true)
+            }}
+          >
+            ⚖️ Compare ({compareItems.length > 0 ? compareItems.length : Math.min(4, filtered?.length || 0)})
+          </button>
           {canAddProperty && (
             <button className="button" style={{flexShrink:0}} onClick={()=>setShowForm(true)}>Add Property</button>
           )}
@@ -259,6 +289,18 @@ const PropertiesPage: React.FC = () => {
       />
 
       <Pagination page={page} hasMore={hasMore} totalPages={totalPages} onPrev={handlePrevPage} onNext={handleNextPage} loading={loading} />
+
+      <SmartMatchModal
+        isOpen={showSmartMatch}
+        onClose={() => setShowSmartMatch(false)}
+      />
+
+      <PropertyComparisonModal
+        isOpen={showCompare}
+        onClose={() => setShowCompare(false)}
+        properties={compareItems.length > 0 ? compareItems : (filtered ? filtered.slice(0, 4) : [])}
+        onRemoveProperty={(propertyId) => setCompareItems((prev) => prev.filter((p) => p.id !== propertyId))}
+      />
     </div>
   )
 }

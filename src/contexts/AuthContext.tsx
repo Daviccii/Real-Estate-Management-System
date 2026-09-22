@@ -25,8 +25,8 @@ export const AuthProvider: React.FC<{children:React.ReactNode}> = ({children}) =
     // triggering 401s for public visitors (refresh relies on httponly cookie).
     try{
       const path = window?.location?.pathname || ''
-      // Check if this is a protected route (app, admin, agent, manager, tenant)
-      const protectedRoutes = ['/app', '/admin', '/agent', '/manager', '/tenant']
+      // Check if this is a protected route (app, admin, agent, manager, tenant, owner, provider)
+      const protectedRoutes = ['/app', '/admin', '/agent', '/manager', '/tenant', '/owner', '/provider']
       const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route))
       
       if (!isProtectedRoute){
@@ -43,8 +43,9 @@ export const AuthProvider: React.FC<{children:React.ReactNode}> = ({children}) =
   const login = async (email:string,password:string)=>{
     setLoading(true)
     try{
-      const u = await authService.login(email,password)
-      setUser(u)
+      const res = await authService.login(email,password)
+      setUser(res.user)
+      return res
     }finally{setLoading(false)}
   }
 
@@ -62,11 +63,17 @@ export const AuthProvider: React.FC<{children:React.ReactNode}> = ({children}) =
   }
 
   const hasRole = (role: UserRole): boolean => {
-    return user?.role === role
+    if (!user) return false
+    if (user.role === role) return true
+    if (user.roles_csv) {
+      return user.roles_csv.split(',').map(r => r.trim()).includes(role)
+    }
+    return false
   }
 
   const hasAnyRole = (roles: UserRole[]): boolean => {
-    return user?.role !== undefined && roles.includes(user.role)
+    if (!user) return false
+    return roles.some(role => hasRole(role))
   }
 
   const getDashboardPath = (): string => {
@@ -77,10 +84,14 @@ export const AuthProvider: React.FC<{children:React.ReactNode}> = ({children}) =
         return '/admin/dashboard'
       case 'manager':
         return '/manager/dashboard'
+      case 'owner':
+        return '/owner/dashboard'
       case 'agent':
         return '/agent/dashboard'
       case 'tenant':
         return '/tenant/dashboard'
+      case 'service_provider':
+        return '/provider/dashboard'
       case 'user':
       default:
         return '/app'

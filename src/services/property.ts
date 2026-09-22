@@ -97,4 +97,14 @@ const remove = async (id: number): Promise<boolean> => {
   return true
 }
 
-export const propertyService = { list, pagedList, count, meta, marketInsights, get, getPublic, create, update, delete: remove }
+const match = async (criteria: any): Promise<Array<{ property: Property; match_score: number; match_reasons: string[] }>> => {
+  return api.request('/properties/match', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(criteria)
+  })
+}
+
+export const getProperties = list
+export const matchProperties = match
+export const propertyService = { list, pagedList, count, meta, marketInsights, get, getPublic, create, update, delete: remove, match }

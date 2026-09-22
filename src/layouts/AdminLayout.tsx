@@ -9,10 +9,13 @@ const AdminSidebar: React.FC = () => {
   const menuItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/admin/properties', label: 'Properties', icon: '🏠' },
+    { path: '/admin/buildings', label: 'Buildings', icon: '🏙️' },
     { path: '/admin/units', label: 'Units', icon: '🏢' },
     { path: '/admin/leases', label: 'Leases', icon: '📄' },
     { path: '/admin/payments', label: 'Payments', icon: '💰' },
     { path: '/admin/maintenance', label: 'Maintenance', icon: '🔧' },
+    { path: '/admin/verifications', label: 'Verifications', icon: '🛡️' },
+    { path: '/admin/audit-logs', label: 'Audit Trail', icon: '📋' },
     { path: '/admin/users', label: 'Users', icon: '👥' },
     { path: '/admin/inquiries', label: 'Inquiries', icon: '💬' },
     { path: '/admin/agents', label: 'Agents', icon: '🤝' },
