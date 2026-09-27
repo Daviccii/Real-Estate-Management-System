@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { validateProperty } from '../utils/validation'
 import { PROPERTY_TYPES, NON_RESIDENTIAL_TYPES } from '../data/propertySearchOptions'
+import { KENYA_COUNTIES, COUNTY_AREAS } from '../data/kenyaLocations'
 
 type Props = {
   initial?: any
@@ -24,6 +25,7 @@ const PropertyForm: React.FC<Props> = ({ initial = {}, onSubmit, onCancel }) => 
   const [city,setCity]=useState(initial.city||'')
   const [address,setAddress]=useState(initial.address||'')
   const [county,setCounty]=useState(initial.county||'')
+  const [sub_location,setSubLocation]=useState(initial.sub_location||'')
   const [country,setCountry]=useState(initial.country||'Kenya')
   const [units_count,setUnits]=useState(initial.units_count ?? 1)
   const [price,setPrice]=useState(initial.price||'')
@@ -35,6 +37,7 @@ const PropertyForm: React.FC<Props> = ({ initial = {}, onSubmit, onCancel }) => 
   const [description,setDescription]=useState(initial.description||'')
   const [deposit,setDeposit]=useState(initial.deposit||'')
   const [lease_term,setLeaseTerm]=useState(initial.lease_term||'')
+  const [allow_direct_contact,setAllowDirectContact]=useState<boolean>(initial.allow_direct_contact ?? false)
 
   const [loading,setLoading]=useState(false)
   const [error,setError]=useState<string | null>(null)
@@ -59,6 +62,7 @@ const PropertyForm: React.FC<Props> = ({ initial = {}, onSubmit, onCancel }) => 
       city: city || undefined,
       address: address || undefined,
       county: county || undefined,
+      sub_location: sub_location || undefined,
       country: country || undefined,
       units_count,
       price: price || undefined,
@@ -70,6 +74,7 @@ const PropertyForm: React.FC<Props> = ({ initial = {}, onSubmit, onCancel }) => 
       description: description || undefined,
       deposit: showRentFields ? (deposit || undefined) : undefined,
       lease_term: showRentFields ? (lease_term || undefined) : undefined,
+      allow_direct_contact: allow_direct_contact,
     }
 
     const errs = validateProperty(payload)
@@ -122,8 +127,28 @@ const PropertyForm: React.FC<Props> = ({ initial = {}, onSubmit, onCancel }) => 
       <div style={{display:'flex',gap:12}}>
         <div style={{flex:1}}>
           <label>County</label>
-          <input value={county} onChange={e=>setCounty(e.target.value)} style={{width:'100%'}} />
+          <select value={county} onChange={e=>{ setCounty(e.target.value); setSubLocation(''); setCity('') }} style={{width:'100%'}}>
+            <option value="">Select county…</option>
+            {KENYA_COUNTIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
         </div>
+        <div style={{flex:1}}>
+          <label>Area / Town</label>
+          {(COUNTY_AREAS[county] || []).length > 0 ? (
+            <>
+              <select value={sub_location} onChange={e=>{ setSubLocation(e.target.value); if (e.target.value) setCity(e.target.value) }} style={{width:'100%'}}>
+                <option value="">Select area…</option>
+                {(COUNTY_AREAS[county] || []).map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+              <input value={sub_location && !COUNTY_AREAS[county]?.includes(sub_location) ? sub_location : ''} onChange={e=>setSubLocation(e.target.value)} placeholder="Or type another area" style={{width:'100%',marginTop:6}} />
+            </>
+          ) : (
+            <input value={sub_location} onChange={e=>{ setSubLocation(e.target.value); setCity(e.target.value) }} placeholder="e.g. estate, town or village" style={{width:'100%'}} />
+          )}
+        </div>
+      </div>
+
+      <div style={{display:'flex',gap:12}}>
         <div style={{flex:1}}>
           <label>Country</label>
           <input value={country} onChange={e=>setCountry(e.target.value)} style={{width:'100%'}} />
@@ -176,6 +201,21 @@ const PropertyForm: React.FC<Props> = ({ initial = {}, onSubmit, onCancel }) => 
 
       <label>Image URL</label>
       <input value={image_url} onChange={e=>setImageUrl(e.target.value)} placeholder="https://…  (leave blank to auto-generate)" />
+
+      <label style={{display:'flex',alignItems:'flex-start',gap:8,cursor:'pointer'}}>
+        <input
+          type="checkbox"
+          checked={allow_direct_contact}
+          onChange={e=>setAllowDirectContact(e.target.checked)}
+          style={{marginTop:4}}
+        />
+        <span>
+          Allow buyers/tenants to see my direct contact details for this listing
+          <span style={{display:'block',color:'var(--text-secondary)',fontSize:12,fontWeight:400}}>
+            Off by default — prospects message you through PropNoxa instead. Your phone/email are only shown when this is on, and every reveal is logged (Data Protection Act, 2019).
+          </span>
+        </span>
+      </label>
 
       <label>Description</label>
       <textarea value={description} onChange={e=>setDescription(e.target.value)} rows={4} style={{width:'100%',resize:'vertical'}} />

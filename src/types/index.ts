@@ -26,6 +26,7 @@ export interface Property {
   address?: string | null
   city?: string | null
   county?: string | null
+  sub_location?: string | null
   country?: string | null
   status: string
   units_count?: number | null
@@ -43,6 +44,7 @@ export interface Property {
   furnishing?: string | null
   parking_spaces?: number | null
   is_verified?: boolean
+  allow_direct_contact?: boolean
   created_at?: string
   updated_at?: string
 }

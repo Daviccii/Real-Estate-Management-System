@@ -1,3 +1,5 @@
+import { LOCATION_SUGGESTIONS } from './kenyaLocations'
+
 export const PROPERTY_TYPES = [
   { label: 'Any type', value: '' },
   { label: 'Apartment', value: 'Apartment' },
@@ -35,11 +37,10 @@ export const BEDROOMS = [
 // everywhere else in the app (homepage hero search, match panel, explore-by-
 // -location links), so the discovery page's filter matches that instead of
 // locking users into a fixed dropdown.
-export const CITY_SUGGESTIONS = [
-  'Nairobi', 'Westlands', 'Kilimani', 'Kileleshwa', 'Lavington', 'Karen',
-  'Parklands', 'Upper Hill', 'Nairobi CBD', 'Ruaka', 'Kiambu', 'Ruiru',
-  'Syokimau', 'Mombasa', 'Kisumu', 'Nakuru',
-]
+// Kenya-wide: all 47 counties plus known neighbourhoods/areas, so a visitor
+// can type either a county ("Nakuru") or an area ("Kilimani") and the
+// backend's location filter matches city OR county OR sub_location.
+export const CITY_SUGGESTIONS = LOCATION_SUGGESTIONS
 
 /** Returns a rough numeric KES value for budget-bucket filtering, or null if unknown. */
 export function budgetBucketBounds(value: string): { min: number; max: number } | null {

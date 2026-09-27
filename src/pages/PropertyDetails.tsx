@@ -49,6 +49,10 @@ const PropertyDetailsPage: React.FC = () => {
   const [emergencyPhone, setEmergencyPhone] = useState('')
   const [submittingApp, setSubmittingApp] = useState(false)
 
+  // Consent-gated direct contact (Kenya Data Protection Act, 2019)
+  const [directContact, setDirectContact] = useState<{ name: string; phone?: string | null; email?: string | null; role?: string } | null>(null)
+  const [contactBlocked, setContactBlocked] = useState(false)
+
   const { addFavorite, removeFavorite, isFavorite } = useFavorites()
   const { user } = useAuth()
   const { addToast } = useToast()
@@ -96,6 +100,27 @@ const PropertyDetailsPage: React.FC = () => {
       cancelled = true
     }
   }, [item?.id, item?.image_url, item?.property_type, item?.purpose])
+
+  // Only signed-in users may fetch contact info; the backend reveals it only
+  // when the owner enabled direct contact for this listing.
+  useEffect(() => {
+    if (!id || !user) return
+    let cancelled = false
+    propertyService
+      .getContact(Number(id))
+      .then((res) => {
+        if (cancelled) return
+        if (res.direct_contact_allowed && res.contact) {
+          setDirectContact(res.contact)
+        } else {
+          setContactBlocked(true)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [id, user?.id])
 
   const handleDelete = async () => {
     if (!id) return
@@ -293,7 +318,9 @@ const PropertyDetailsPage: React.FC = () => {
               <div>
                 <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800 }}>{item.name}</h1>
                 <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>
-                  {item.address ? `${item.address}, ` : ''}{item.city}, {item.country}
+                  {item.address ? `${item.address}, ` : ''}
+                  {item.sub_location ? `${item.sub_location}, ` : ''}
+                  {[item.city, item.county, item.country].filter(Boolean).join(', ')}
                 </p>
               </div>
               {user && (
@@ -435,6 +462,43 @@ const PropertyDetailsPage: React.FC = () => {
               )}
             </div>
           </div>
+
+          {/* Direct Contact — revealed only with owner consent */}
+          {directContact && (
+            <div className="card">
+              <h3 style={{ fontSize: 15, marginBottom: 8 }}>Direct Contact</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 0 }}>
+                The {directContact.role === 'agent' ? 'listing agent' : 'owner'} has enabled direct contact for this property.
+              </p>
+              <div style={{ fontWeight: 700 }}>{directContact.name}</div>
+              {directContact.phone && (
+                <div style={{ marginTop: 6 }}>
+                  <a className="button" href={`tel:${directContact.phone}`} style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+                    📞 {directContact.phone}
+                  </a>
+                </div>
+              )}
+              {directContact.email && (
+                <div style={{ marginTop: 6 }}>
+                  <a className="button muted" href={`mailto:${directContact.email}`} style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+                    ✉️ {directContact.email}
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Owner prefers platform messaging */}
+          {contactBlocked && !directContact && (
+            <div className="card" style={{ background: 'var(--bg-secondary)' }}>
+              <h3 style={{ fontSize: 15, marginBottom: 8 }}>Prefer to talk directly?</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 13, margin: 0 }}>
+                This owner has chosen to receive inquiries through PropNoxa. Use
+                “Send Host Inquiry” above — their replies will appear in your Messages,
+                and they can share their contact details there if they wish.
+              </p>
+            </div>
+          )}
 
           {/* Owner/Admin Management Controls */}
           {user && (user.id === item.owner_id || user.role === 'admin') && (

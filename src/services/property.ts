@@ -78,6 +78,17 @@ const getPublic = async (id: number): Promise<Property | null> => {
   return api.request(`/properties/public/${id}`)
 }
 
+// Consent-gated direct-contact reveal. Returns { direct_contact_allowed,
+// contact } — contact is null when the owner has not enabled direct contact
+// for the listing (Kenya Data Protection Act, 2019). Requires sign-in.
+const getContact = async (id: number): Promise<{
+  direct_contact_allowed: boolean
+  contact: { user_id: number; name: string; phone?: string | null; email?: string | null; role?: string } | null
+  message?: string
+}> => {
+  return api.request(`/properties/public/${id}/contact`)
+}
+
 const create = async (payload: Partial<Property>): Promise<Property | null> => {
   return api.request('/properties/', {
     method: 'POST',
@@ -107,4 +118,4 @@ const match = async (criteria: any): Promise<Array<{ property: Property; match_s
 
 export const getProperties = list
 export const matchProperties = match
-export const propertyService = { list, pagedList, count, meta, marketInsights, get, getPublic, create, update, delete: remove, match }
+export const propertyService = { list, pagedList, count, meta, marketInsights, get, getPublic, getContact, create, update, delete: remove, match }
