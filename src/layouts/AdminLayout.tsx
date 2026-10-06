@@ -42,12 +42,13 @@ const AdminSidebar: React.FC = () => {
         </button>
       </div>
       
+      <div className="admin-workspace-label">CONTROL CENTER</div>
       <nav className="nav" aria-label="Admin navigation">
         {menuItems.map((item) => (
           <Link 
             key={item.path} 
             to={item.path}
-            className={location.pathname === item.path ? 'active' : ''}
+            className={location.pathname === item.path || location.pathname.startsWith(item.path + '/') ? 'active' : ''}
             style={{ display: 'flex', alignItems: 'center', gap: 8 }}
           >
             <span style={{ fontSize: 16 }}>{item.icon}</span>
@@ -81,7 +82,8 @@ const AdminHeader: React.FC = () => {
         </div>
       </div>
       
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div className="admin-header-meta" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div className="admin-live-status"><span /> Systems operational</div>
         <div className="admin-badge" style={{ 
           background: 'var(--primary)', 
           color: 'white', 

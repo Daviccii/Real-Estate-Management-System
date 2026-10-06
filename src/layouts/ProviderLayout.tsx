@@ -30,12 +30,13 @@ const ProviderSidebar: React.FC = () => {
         </button>
       </div>
 
+      <div className="provider-workspace-label">FIELD OPERATIONS</div>
       <nav className="nav" aria-label="Provider navigation">
         {menuItems.map((item) => (
           <Link
             key={item.path}
             to={item.path}
-            className={location.pathname === item.path ? 'active' : ''}
+            className={location.pathname === item.path || location.pathname.startsWith(item.path + '/') ? 'active' : ''}
             style={{ display: 'flex', alignItems: 'center', gap: 8 }}
           >
             <span style={{ fontSize: 16 }}>{item.icon}</span>
@@ -62,7 +63,8 @@ const ProviderHeader: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div className="provider-header-meta" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div className="provider-sync-status"><span /> Dispatch online</div>
         <span
           style={{
             background: '#d97706',

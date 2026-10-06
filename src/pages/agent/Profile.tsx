@@ -33,6 +33,7 @@ export const AgentProfile: React.FC = () => {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
+        <span className="agent-eyebrow">Professional identity</span>
         <h1 className="text-2xl font-bold text-slate-800">Agent Profile & Professional Accreditation</h1>
         <p className="text-slate-500 text-sm mt-1">Manage public agent credentials, agency affiliation, and EARB verification badge.</p>
       </div>

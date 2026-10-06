@@ -4,6 +4,7 @@ const ManagerReports: React.FC = () => {
   return (
     <div className="management-container">
       <div className="management-header">
+       <span className="manager-eyebrow">Performance intelligence</span>
         <h1>Reports</h1>
         <p>Generate and view property reports</p>
       </div>

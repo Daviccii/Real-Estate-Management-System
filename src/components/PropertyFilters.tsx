@@ -7,6 +7,7 @@ interface PropertyFiltersProps {
   typeFilter: string
   cityFilter: string
   statusFilter: string
+  verifiedOnly: boolean
   budgetFilter: string
   bedroomsFilter: string
   sort: string
@@ -14,6 +15,7 @@ interface PropertyFiltersProps {
   onTypeChange: (value: string) => void
   onCityChange: (value: string) => void
   onStatusChange: (value: string) => void
+  onVerifiedOnlyChange: (value: boolean) => void
   onBudgetChange: (value: string) => void
   onBedroomsChange: (value: string) => void
   onSortChange: (value: string) => void
@@ -43,6 +45,7 @@ const PropertyFilters: React.FC<PropertyFiltersProps> = ({
   typeFilter,
   cityFilter,
   statusFilter,
+  verifiedOnly,
   budgetFilter,
   bedroomsFilter,
   sort,
@@ -50,6 +53,7 @@ const PropertyFilters: React.FC<PropertyFiltersProps> = ({
   onTypeChange,
   onCityChange,
   onStatusChange,
+  onVerifiedOnlyChange,
   onBudgetChange,
   onBedroomsChange,
   onSortChange,
@@ -71,6 +75,7 @@ const PropertyFilters: React.FC<PropertyFiltersProps> = ({
   if (showBudgetFilter && budgetFilter && budgetLabel) chips.push({ key: 'budget', label: budgetLabel, onRemove: () => onBudgetChange('') })
   if (showBedroomsFilter && bedroomsFilter && bedroomsLabel) chips.push({ key: 'bedrooms', label: `${bedroomsLabel} bed${bedroomsFilter && bedroomsFilter !== '0' ? 's' : ''}`, onRemove: () => onBedroomsChange('') })
   if (statusFilter) chips.push({ key: 'status', label: STATUS_LABELS[statusFilter] || statusFilter, onRemove: () => onStatusChange('') })
+  if (verifiedOnly) chips.push({ key: 'verified', label: 'Verified only', onRemove: () => onVerifiedOnlyChange(false) })
 
   return (
     <div className="pn-filters-bar">
@@ -134,6 +139,14 @@ const PropertyFilters: React.FC<PropertyFiltersProps> = ({
             <option value="pending">Pending</option>
             <option value="sold">Sold</option>
             <option value="rented">Rented</option>
+          </select>
+        </label>
+
+        <label className="pn-filter-field">
+          <span>Trust status</span>
+          <select value={verifiedOnly ? 'verified' : ''} onChange={e => onVerifiedOnlyChange(e.target.value === 'verified')}>
+            <option value="">All listings</option>
+            <option value="verified">Verified only</option>
           </select>
         </label>
 

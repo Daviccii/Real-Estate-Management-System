@@ -1,5 +1,5 @@
 import { api } from './api'
-import { VerificationRecord } from '../types'
+import { VerificationEvidence, VerificationRecord } from '../types'
 
 export interface VerificationSubmitPayload {
   verification_type: 'identity' | 'ownership' | 'agency_license' | 'contractor_license'
@@ -34,8 +34,15 @@ export async function getPendingVerifications(): Promise<VerificationRecord[]> {
 
 export async function reviewVerification(id: number, payload: VerificationReviewPayload): Promise<VerificationRecord> {
   return api.request<VerificationRecord>(`/api/verifications/${id}/review`, {
-    method: 'PATCH',
+    method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({
+      ...payload,
+      status: payload.status === 'approved' ? 'verified' : payload.status
+    })
   })
+}
+
+export async function getVerificationEvidence(id: number): Promise<VerificationEvidence[]> {
+  return api.request<VerificationEvidence[]>(`/api/verifications/${id}/evidence`)
 }

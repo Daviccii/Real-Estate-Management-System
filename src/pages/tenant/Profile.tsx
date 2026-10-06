@@ -34,6 +34,7 @@ export const TenantProfile: React.FC = () => {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
+        <span className="tenant-eyebrow">Identity & access</span>
         <h1 className="text-2xl font-bold text-slate-800">My Profile & Security Verification</h1>
         <p className="text-slate-500 text-sm mt-1">Manage personal contact details and verified tenant trust badges.</p>
       </div>

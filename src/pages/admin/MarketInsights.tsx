@@ -28,7 +28,14 @@ const AdminMarketInsights: React.FC = () => {
   if (loading) {
     return (
       <div className="page">
-        <h1>Market Insights</h1>
+        <div className="admin-page-heading">
+          <div>
+            <span className="admin-eyebrow">Market intelligence</span>
+            <h1>Market Insights</h1>
+            <p>Understand listing mix, demand patterns, and portfolio distribution.</p>
+          </div>
+          <button className="button muted" onClick={loadInsights}>Refresh insights</button>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
           {[...Array(5)].map((_, i) => (
             <StatCard key={i} title="Loading..." value="..." loading />

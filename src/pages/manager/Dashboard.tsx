@@ -32,6 +32,7 @@ const ManagerDashboard: React.FC = () => {
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
+        <span className="manager-eyebrow">Operations overview</span>
         <h1>Manager Dashboard</h1>
         <p>Overview of your managed properties and operations</p>
       </div>

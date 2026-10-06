@@ -36,6 +36,7 @@ const ManagerSidebar: React.FC = () => {
         </button>
       </div>
       
+      <div className="manager-workspace-label">OPERATIONS HUB</div>
       <nav className="nav" aria-label="Manager navigation">
         {menuItems.map((item) => (
           <Link 
@@ -75,7 +76,8 @@ const ManagerHeader: React.FC = () => {
         </div>
       </div>
       
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div className="manager-header-meta" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div className="manager-sync-status"><span /> Portfolio live</div>
         <div className="manager-badge" style={{ 
           background: 'var(--primary)', 
           color: 'white', 

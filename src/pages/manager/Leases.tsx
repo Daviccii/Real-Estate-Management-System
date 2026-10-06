@@ -33,6 +33,7 @@ const ManagerLeases: React.FC = () => {
   return (
     <div className="management-container">
       <div className="management-header">
+       <span className="manager-eyebrow">Contract administration</span>
         <h1>Leases</h1>
         <p>Manage all leases for your properties</p>
       </div>

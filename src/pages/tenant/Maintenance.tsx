@@ -64,6 +64,7 @@ export const TenantMaintenance: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
+          <span className="tenant-eyebrow">Resident support</span>
           <h1 className="text-2xl font-bold text-slate-800">Maintenance & Repairs</h1>
           <p className="text-slate-500 text-sm mt-1">
             Submit repair requests, track technician visits, and review work order progress.

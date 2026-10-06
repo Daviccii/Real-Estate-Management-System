@@ -33,6 +33,7 @@ const ManagerInquiries: React.FC = () => {
   return (
     <div className="management-container">
       <div className="management-header">
+       <span className="manager-eyebrow">Resident engagement</span>
         <h1>Inquiries</h1>
         <p>Manage property inquiries from users</p>
       </div>

@@ -185,6 +185,26 @@ const App: React.FC = () => {
               {/* Dynamic role dashboard redirection */}
               <Route element={<RequireAuth />}>
                 <Route path="/dashboard" element={<RoleRedirect />} />
+                {/* Legacy/bare route fallbacks to prevent accidental redirect to home */}
+                <Route path="/overview" element={<RoleRedirect />} />
+                <Route path="/units" element={<RoleRedirect />} />
+                <Route path="/leases" element={<RoleRedirect />} />
+                <Route path="/tenants" element={<RoleRedirect />} />
+                <Route path="/payments" element={<RoleRedirect />} />
+                <Route path="/maintenance" element={<RoleRedirect />} />
+                <Route path="/documents" element={<RoleRedirect />} />
+                <Route path="/reports" element={<RoleRedirect />} />
+                <Route path="/settings" element={<RoleRedirect />} />
+              </Route>
+
+              {/* Generic App Shell / Legacy User routes */}
+              <Route element={<RequireAuth />}>
+                <Route path="/app" element={<RoleRedirect />} />
+                <Route element={<RequireRole allowedRoles={['user', 'admin', 'manager', 'owner', 'agent']} />}>
+                  <Route element={<MainLayout />}>
+                    <Route path="/app/properties/:id/edit" element={<PropertyEditPage />} />
+                  </Route>
+                </Route>
               </Route>
 
               {/* Tenant Portal */}
@@ -295,15 +315,7 @@ const App: React.FC = () => {
                 </Route>
               </Route>
 
-              {/* Generic App Shell / Legacy User routes */}
-              <Route element={<RequireAuth />}>
-                <Route element={<RequireRole allowedRoles={['user', 'admin']} />}>
-                  <Route path="/app" element={<MainLayout />}>
-                    <Route index element={<DashboardPage />} />
-                    <Route path="properties/:id/edit" element={<PropertyEditPage />} />
-                  </Route>
-                </Route>
-              </Route>
+
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

@@ -26,6 +26,7 @@ export const OwnerTenants: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
+        <span className="owner-eyebrow">Resident experience</span>
         <h1 className="text-2xl font-bold text-slate-800">Resident & Tenant Directory</h1>
         <p className="text-slate-500 text-sm mt-1">
           Active tenants occupying units across your investment properties.

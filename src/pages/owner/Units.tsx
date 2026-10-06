@@ -34,6 +34,7 @@ export const OwnerUnits: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
+          <span className="owner-eyebrow">Operations directory</span>
           <h1 className="text-2xl font-bold text-slate-800">Unit Inventory & Availability</h1>
           <p className="text-slate-500 text-sm mt-1">
             Door-by-door unit tracking, rent prices, and occupancy states.

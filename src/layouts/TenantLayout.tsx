@@ -34,12 +34,13 @@ const TenantSidebar: React.FC = () => {
         </button>
       </div>
 
+      <div className="tenant-workspace-label">RESIDENT SERVICES</div>
       <nav className="nav" aria-label="Tenant navigation">
         {menuItems.map((item) => (
           <Link
             key={item.path}
             to={item.path}
-            className={location.pathname === item.path ? 'active' : ''}
+            className={location.pathname === item.path || location.pathname.startsWith(item.path + '/') ? 'active' : ''}
             style={{ display: 'flex', alignItems: 'center', gap: 8 }}
           >
             <span style={{ fontSize: 16 }}>{item.icon}</span>
@@ -66,7 +67,8 @@ const TenantHeader: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div className="tenant-header-meta" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div className="tenant-sync-status"><span /> Account in good standing</div>
         <span
           style={{
             background: '#059669',

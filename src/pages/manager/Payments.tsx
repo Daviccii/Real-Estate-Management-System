@@ -44,6 +44,7 @@ const ManagerPayments: React.FC = () => {
   return (
     <div className="management-container">
       <div className="management-header">
+       <span className="manager-eyebrow">Collections control</span>
         <h1>Payments</h1>
         <p>Monitor payment status and collections</p>
       </div>

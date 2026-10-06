@@ -37,6 +37,7 @@ const PropertiesPage: React.FC = () => {
   const [typeFilter,setTypeFilter]=useState('')
   const [cityFilter,setCityFilter]=useState('')
   const [statusFilter,setStatusFilter]=useState('')
+  const [verifiedOnly,setVerifiedOnly]=useState(false)
   const [sort,setSort]=useState('')
   const [purposeFilter,setPurposeFilter]=useState<PropertyPurpose | ''>('')
   const [budgetFilter,setBudgetFilter]=useState('')
@@ -51,11 +52,11 @@ const PropertiesPage: React.FC = () => {
   // properties.py). Showing "Add Property" to every logged-in user meant
   // plain buyer/tenant accounts would hit a 403 after filling out the form.
   const { hasAnyRole } = useAuth()
-  const canAddProperty = hasAnyRole(['agent', 'manager', 'admin'])
+  const canAddProperty = hasAnyRole(['agent', 'manager', 'owner', 'admin'])
   const navigate = useNavigate()
   const location = useLocation()
 
-  const fetch = async (overrides?: { q?: string; type?: string; city?: string; status?: string; sort?: string; purpose?: string; page?: number }) => {
+  const fetch = async (overrides?: { q?: string; type?: string; city?: string; status?: string; sort?: string; purpose?: string; verified?: boolean; page?: number }) => {
     setLoading(true); setError(null)
     const targetPage = overrides?.page ?? page
     const filterParams = {
@@ -64,6 +65,7 @@ const PropertiesPage: React.FC = () => {
       city: (overrides?.city ?? cityFilter) || undefined,
       status: (overrides?.status ?? statusFilter) || undefined,
       purpose: (overrides?.purpose ?? purposeFilter) || undefined,
+      verified_only: overrides?.verified ?? verifiedOnly,
     }
     try{
       const [res, total] = await Promise.all([
@@ -89,6 +91,7 @@ const PropertiesPage: React.FC = () => {
     const urlSort = params.get('sort') || ''
     const urlQ = params.get('q') || ''
     const urlPurpose = (params.get('purpose') as PropertyPurpose | null) || ''
+    const urlVerified = params.get('verified') === 'true'
     const urlBudget = params.get('budget') || ''
     const urlBedrooms = params.get('bedrooms') || ''
     const urlMatch = params.get('match') === 'true'
@@ -99,18 +102,20 @@ const PropertiesPage: React.FC = () => {
     setSort(urlSort)
     setQ(urlQ)
     setPurposeFilter(urlPurpose)
+    setVerifiedOnly(urlVerified)
     setBudgetFilter(urlBudget)
     setBedroomsFilter(urlBedrooms)
     setMatched(urlMatch)
 
-    fetch({ q: urlQ, type: urlType, city: urlCity, status: urlStatus, sort: urlSort, purpose: urlPurpose, page: 1 })
+    fetch({ q: urlQ, type: urlType, city: urlCity, status: urlStatus, sort: urlSort, purpose: urlPurpose, verified: urlVerified, page: 1 })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function syncUrl(next: Partial<{ q: string; type: string; city: string; status: string; sort: string; purpose: PropertyPurpose | ''; budget: string; bedrooms: string }>) {
+  function syncUrl(next: Partial<{ q: string; type: string; city: string; status: string; sort: string; purpose: PropertyPurpose | ''; budget: string; bedrooms: string; verified: boolean }>) {
     const state = {
       q, type: typeFilter, city: cityFilter, status: statusFilter, sort,
       purpose: purposeFilter, budget: budgetFilter, bedrooms: bedroomsFilter,
+      verified: verifiedOnly,
       ...next,
     }
     const params = new URLSearchParams()
@@ -122,6 +127,7 @@ const PropertiesPage: React.FC = () => {
     if (state.purpose) params.set('purpose', state.purpose)
     if (state.budget) params.set('budget', state.budget)
     if (state.bedrooms) params.set('bedrooms', state.bedrooms)
+    if (state.verified) params.set('verified', 'true')
     
     // For Explore page, we stay on /properties with purpose as query param
     navigate({ pathname: '/properties', search: params.toString() }, { replace: true })
@@ -134,9 +140,9 @@ const PropertiesPage: React.FC = () => {
 
   function handleClear() {
     setQ(''); setTypeFilter(''); setCityFilter(''); setStatusFilter(''); setSort('')
-    setPurposeFilter(''); setBudgetFilter(''); setBedroomsFilter(''); setMatched(false)
+    setPurposeFilter(''); setBudgetFilter(''); setBedroomsFilter(''); setVerifiedOnly(false); setMatched(false)
     navigate('/properties', { replace: true })
-    fetch({ q: '', type: '', city: '', status: '', sort: '', page: 1 })
+    fetch({ q: '', type: '', city: '', status: '', sort: '', verified: false, page: 1 })
   }
 
   function handlePrevPage() {
@@ -183,7 +189,7 @@ const PropertiesPage: React.FC = () => {
     })
   }, [items, bedroomsFilter, budgetFilter])
 
-  const activeFilterCount = [typeFilter, cityFilter, statusFilter, budgetFilter, bedroomsFilter].filter(Boolean).length
+  const activeFilterCount = [typeFilter, cityFilter, statusFilter, budgetFilter, bedroomsFilter].filter(Boolean).length + (verifiedOnly ? 1 : 0)
 
   // Dynamic header based on purpose (Explore shows generic content)
   const getHeaderTitle = () => {
@@ -260,6 +266,7 @@ const PropertiesPage: React.FC = () => {
         typeFilter={typeFilter}
         cityFilter={cityFilter}
         statusFilter={statusFilter}
+        verifiedOnly={verifiedOnly}
         budgetFilter={budgetFilter}
         bedroomsFilter={bedroomsFilter}
         sort={sort}
@@ -267,6 +274,7 @@ const PropertiesPage: React.FC = () => {
         onTypeChange={setTypeFilter}
         onCityChange={setCityFilter}
         onStatusChange={setStatusFilter}
+        onVerifiedOnlyChange={setVerifiedOnly}
         onBudgetChange={setBudgetFilter}
         onBedroomsChange={setBedroomsFilter}
         onSortChange={setSort}

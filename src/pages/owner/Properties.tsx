@@ -54,6 +54,7 @@ export const OwnerProperties: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
+          <span className="owner-eyebrow">Asset register</span>
           <h1 className="text-2xl font-bold text-slate-800">My Properties & Asset Management</h1>
           <p className="text-slate-500 text-sm mt-1">
             Assign dedicated property managers, marketing agents, and monitor unit operations.

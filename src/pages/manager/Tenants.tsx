@@ -38,6 +38,7 @@ const ManagerTenants: React.FC = () => {
   return (
     <div className="management-container">
       <div className="management-header">
+       <span className="manager-eyebrow">Resident operations</span>
         <h1>Tenants</h1>
         <p>Manage active tenants in your properties</p>
       </div>

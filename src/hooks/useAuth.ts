@@ -1,1 +1,1 @@
-export { useAuth } from '../contexts/AuthContext'
+export { useAuth, getRoleDashboardPath } from '../contexts/AuthContext'

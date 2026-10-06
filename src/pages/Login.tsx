@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth, getRoleDashboardPath } from '../hooks/useAuth'
 import { validateAuth } from '../utils/validation'
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, getDashboardPath } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -20,8 +20,10 @@ const LoginPage: React.FC = () => {
     const errs = validateAuth(email,password)
     if(Object.keys(errs).length>0){ setFieldErrors(errs); setLoading(false); return }
     try {
-      await login(email, password)
-      navigate('/app')
+      const res: any = await login(email, password)
+      const role = res?.user?.role
+      const target = res?.redirect_url || (role ? getRoleDashboardPath(role) : getDashboardPath())
+      navigate(target)
     } catch (err: any) {
       setError(err?.message || 'Login failed')
     } finally {
@@ -30,8 +32,8 @@ const LoginPage: React.FC = () => {
   }
 
   return (
-    <div style={{display:'grid',placeItems:'center',height:'100vh'}}>
-      <div style={{width:420}} className="card">
+    <div style={{display:'grid',placeItems:'center',minHeight:'100vh',padding:16}}>
+      <div style={{width:'min(420px, 100%)'}} className="card">
         <h2>Sign in to PropNoxa</h2>
         <form onSubmit={submit} style={{display:'grid',gap:10}}>
           <input className="input" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />

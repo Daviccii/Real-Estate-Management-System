@@ -33,12 +33,13 @@ const AgentSidebar: React.FC = () => {
         </button>
       </div>
 
+      <div className="agent-workspace-label">DEAL DESK</div>
       <nav className="nav" aria-label="Agent navigation">
         {menuItems.map((item) => (
           <Link
             key={item.path}
             to={item.path}
-            className={location.pathname === item.path ? 'active' : ''}
+            className={location.pathname === item.path || location.pathname.startsWith(item.path + '/') ? 'active' : ''}
             style={{ display: 'flex', alignItems: 'center', gap: 8 }}
           >
             <span style={{ fontSize: 16 }}>{item.icon}</span>
@@ -65,7 +66,8 @@ const AgentHeader: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div className="agent-header-meta" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div className="agent-sync-status"><span /> CRM synced</div>
         <span
           style={{
             background: '#2563eb',

@@ -7,6 +7,7 @@ const ManagerSettings: React.FC = () => {
   return (
     <div className="management-container">
       <div className="management-header">
+       <span className="manager-eyebrow">Workspace preferences</span>
         <h1>Settings</h1>
         <p>Manage your manager account settings</p>
       </div>

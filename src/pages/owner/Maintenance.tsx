@@ -19,6 +19,7 @@ export const OwnerMaintenance: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
+        <span className="owner-eyebrow">Asset care</span>
         <h1 className="text-2xl font-bold text-slate-800">Maintenance Oversight & Work Orders</h1>
         <p className="text-slate-500 text-sm mt-1">
           Monitor repairs, contractor dispatch, and asset depreciation across your portfolio.

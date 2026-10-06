@@ -85,6 +85,7 @@ const ManagerProperties: React.FC = () => {
   return (
     <div className="management-container">
       <div className="management-header">
+        <span className="manager-eyebrow">Portfolio operations</span>
         <h1>My Properties</h1>
         <p>Manage your assigned properties</p>
       </div>

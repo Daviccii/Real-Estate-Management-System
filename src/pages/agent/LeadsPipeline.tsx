@@ -80,6 +80,7 @@ export const AgentLeadsPipeline: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
+          <span className="agent-eyebrow">Relationship intelligence</span>
           <h1 className="text-2xl font-bold text-slate-800">Agent CRM & Deal Pipeline</h1>
           <p className="text-slate-500 text-sm mt-1">
             Track prospective client journeys from initial inquiry to lease execution and commission payout.

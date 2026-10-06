@@ -32,6 +32,7 @@ export const OwnerSettings: React.FC = () => {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
+        <span className="owner-eyebrow">Account governance</span>
         <h1 className="text-2xl font-bold text-slate-800">Owner Profile & Portfolio Settings</h1>
         <p className="text-slate-500 text-sm mt-1">Configure investor profile and title deed ownership badges.</p>
       </div>

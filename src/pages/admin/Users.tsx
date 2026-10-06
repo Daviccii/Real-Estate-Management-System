@@ -107,7 +107,14 @@ const UsersManagement: React.FC = () => {
   if (loading) {
     return (
       <div className="page">
-        <h1>User Management</h1>
+        <div className="admin-page-heading">
+          <div>
+            <span className="admin-eyebrow">Access directory</span>
+            <h1>User Management</h1>
+            <p>Manage platform identities, permissions, and account status.</p>
+          </div>
+          <div className="admin-heading-count">{filteredUsers.length} visible users</div>
+        </div>
         <div className="empty">Loading users…</div>
       </div>
     )

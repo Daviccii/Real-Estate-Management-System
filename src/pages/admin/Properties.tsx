@@ -131,7 +131,14 @@ const PropertiesManagement: React.FC = () => {
   if (loading) {
     return (
       <div className="page">
-        <h1>Property Management</h1>
+        <div className="admin-page-heading">
+          <div>
+            <span className="admin-eyebrow">Portfolio governance</span>
+            <h1>Property Management</h1>
+            <p>Review, maintain, and moderate every listing on the platform.</p>
+          </div>
+          <div className="admin-heading-count">{filteredProperties.length} visible listings</div>
+        </div>
         <div className="empty">Loading properties…</div>
       </div>
     )

@@ -91,8 +91,14 @@ const RoleUsers: React.FC<RoleUsersProps> = ({ role, title, description }) => {
 
   return (
     <div className="page">
-      <h1>{title}</h1>
-      <p style={{ color: 'var(--muted)', marginBottom: 16 }}>{description}</p>
+      <div className="admin-page-heading">
+        <div>
+          <span className="admin-eyebrow">People operations</span>
+          <h1>{title}</h1>
+          <p>{description}</p>
+        </div>
+        <div className="admin-heading-count">{filteredUsers.length} visible</div>
+      </div>
       
       {/* Search */}
       <div className="card" style={{ marginBottom: 16 }}>

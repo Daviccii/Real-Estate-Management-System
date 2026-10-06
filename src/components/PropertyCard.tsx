@@ -5,6 +5,7 @@ import { useFavorites } from '../contexts/FavoriteContext'
 import { useAuth } from '../contexts/AuthContext'
 import { NON_RESIDENTIAL_TYPES } from '../data/propertySearchOptions'
 import { resolvePropertyImage, placeholderPropertyImage } from '../utils/propertyImages'
+import { propertyMapUrl } from '../utils/propertyLocation'
 
 type PropertyCardProps = {
   p: Property
@@ -40,6 +41,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({p, variant = 'default', onFa
   const { isFavorite: checkFavorite, addFavorite, removeFavorite } = useFavorites()
   const actuallyIsFavorite = checkFavorite(p.id) || isSaved
   const canFavorite = user && onFavoriteToggle
+  const canManage = Boolean(user && (user.id === p.owner_id || ['admin', 'manager', 'agent'].includes(user.role)))
 
   // Show a stable placeholder immediately, then swap in a real Pexels photo
   // once resolved (or an explicit image_url, which resolvePropertyImage
@@ -54,8 +56,14 @@ const PropertyCard: React.FC<PropertyCardProps> = ({p, variant = 'default', onFa
 
   const price = formatPrice(p)
   const area = formatArea(p.area)
-  const location = [p.city, p.country].filter(Boolean).join(', ') || p.address || 'Location available on request'
+  const location = [p.sub_location, p.city, p.country].filter(Boolean).join(', ') || p.address || 'Location available on request'
+  const mapUrl = propertyMapUrl(p)
   const variantLabel = variant === 'featured' ? 'Featured listing' : p.status || 'Listing'
+  const verificationLabel = p.is_demo
+    ? 'Demo listing'
+    : p.verification_status === 'VERIFIED' || p.is_verified
+      ? 'Verified'
+      : 'Verification pending'
   const showBedBath = isResidentialType(p.property_type)
   const summaryItems = [
     showBedBath && typeof p.bedrooms === 'number' ? `${p.bedrooms} bed${p.bedrooms === 1 ? '' : 's'}` : null,
@@ -87,6 +95,11 @@ const PropertyCard: React.FC<PropertyCardProps> = ({p, variant = 'default', onFa
           <span className="property-card-pill">{variantLabel}</span>
           {price && <span className="property-card-price-badge">{price}</span>}
         </div>
+        <div className="property-card-media-bottom">
+          <span className={`property-card-verification ${p.is_demo ? 'is-demo' : ''}`}>
+            {verificationLabel}
+          </span>
+        </div>
         {canFavorite && (
           <button
             type="button"
@@ -109,6 +122,14 @@ const PropertyCard: React.FC<PropertyCardProps> = ({p, variant = 'default', onFa
         </div>
 
         <p className="property-card-location">{location}</p>
+        {p.source_name && (
+          <p className="property-card-source">Source: {p.source_name}</p>
+        )}
+        {mapUrl && (
+          <a className="property-card-location" href={mapUrl} target="_blank" rel="noreferrer">
+            Open map
+          </a>
+        )}
 
         {variant === 'featured' ? (
           <>
@@ -135,7 +156,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({p, variant = 'default', onFa
           >
             View Details
           </Link>
-          {variant === 'default' && (
+          {variant === 'default' && canManage && (
             <Link to={`/app/properties/${p.id}/edit`} className="button muted property-card-action">Manage</Link>
           )}
           {variant === 'featured' && canFavorite && (

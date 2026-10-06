@@ -44,7 +44,14 @@ const AdminSettings: React.FC = () => {
   if (loading || !settings) {
     return (
       <div className="page">
-        <h1>Admin Settings</h1>
+        <div className="admin-page-heading">
+          <div>
+            <span className="admin-eyebrow">Platform controls</span>
+            <h1>Admin Settings</h1>
+            <p>Configure access, moderation, security, and notification behavior.</p>
+          </div>
+          {saving && <div className="admin-saving-indicator"><span /> Saving changes</div>}
+        </div>
         <div className="empty">Loading settings…</div>
       </div>
     )

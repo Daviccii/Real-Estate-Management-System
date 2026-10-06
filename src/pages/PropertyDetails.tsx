@@ -10,11 +10,24 @@ import { useToast } from '../components/ToastProvider'
 import { useFavorites } from '../contexts/FavoriteContext'
 import { useAuth } from '../contexts/AuthContext'
 import { NON_RESIDENTIAL_TYPES } from '../data/propertySearchOptions'
+import { PUBLIC_FEATURED_PROPERTIES_FALLBACK } from '../data/publicHomeContent'
 import { resolvePropertyImage, placeholderPropertyImage } from '../utils/propertyImages'
+import { propertyMapUrl } from '../utils/propertyLocation'
 
 function isResidentialType(propertyType?: string | null): boolean {
   if (!propertyType) return true
   return !NON_RESIDENTIAL_TYPES.includes(propertyType)
+}
+
+function parseGalleryUrls(value?: string | null): string[] {
+  if (!value) return []
+  try {
+    const parsed = JSON.parse(value)
+    if (Array.isArray(parsed)) return parsed.filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
+  } catch {
+    // Legacy listings may store one URL per line instead of JSON.
+  }
+  return value.split(/\r?\n|,/).map(url => url.trim()).filter(Boolean)
 }
 
 const PropertyDetailsPage: React.FC = () => {
@@ -22,6 +35,7 @@ const PropertyDetailsPage: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const [item, setItem] = useState<Property | null>(null)
+  const [structuredMedia, setStructuredMedia] = useState<NonNullable<Property['media']>>([])
   const [loading, setLoading] = useState(false)
   const [img, setImg] = useState<string | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -81,10 +95,25 @@ const PropertyDetailsPage: React.FC = () => {
 
   useEffect(() => {
     if (!id) return
+    const propertyId = Number(id)
+    if (propertyId < 0) {
+      setItem(PUBLIC_FEATURED_PROPERTIES_FALLBACK.find(property => property.id === propertyId) || null)
+      setLoading(false)
+      return
+    }
     setLoading(true)
     propertyService
-      .getPublic(Number(id))
-      .then((r) => setItem(r))
+      .getPublic(propertyId)
+      .then(async (r) => {
+        setItem(r)
+        if (r && propertyId >= 0) {
+          try {
+            setStructuredMedia(await propertyService.listMedia(propertyId))
+          } catch {
+            setStructuredMedia([])
+          }
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [id])
@@ -251,6 +280,21 @@ const PropertyDetailsPage: React.FC = () => {
   }
 
   const showBedBath = isResidentialType(item.property_type)
+  const mapUrl = propertyMapUrl(item)
+  const galleryUrls = parseGalleryUrls(item.gallery_urls)
+  const mediaUrls = structuredMedia.map((media) => media.url).filter(Boolean)
+  const displayGallery = mediaUrls.length > 0 ? structuredMedia : galleryUrls.map((url, index) => ({
+    id: -(index + 1),
+    url,
+    media_type: 'image',
+    source_type: 'LEGACY_GALLERY',
+    source_name: null,
+    license_reference: null,
+    caption: null,
+    is_primary: index === 0,
+    is_public: true
+  }))
+  const isComplete = !item.construction_status || item.construction_status === 'completed'
 
   return (
     <div className="page">
@@ -258,9 +302,9 @@ const PropertyDetailsPage: React.FC = () => {
         ← {getBackLabel()}
       </button>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 24 }}>
+      <div className="property-details-grid">
         {/* Left Column - Property Info */}
-        <div style={{ gridColumn: 'span 2' }}>
+        <div>
           {/* Property Image & Badges */}
           <div
             className="card"
@@ -307,10 +351,60 @@ const PropertyDetailsPage: React.FC = () => {
                   backdropFilter: 'blur(8px)'
                 }}
               >
-                ✓ Verified Property
+                {item.is_verified ? '✓ Verified Property' : 'Listing'}
               </span>
+              {item.is_demo && (
+                <span
+                  style={{
+                    background: 'rgba(245, 158, 11, 0.92)',
+                    color: 'white',
+                    padding: '4px 12px',
+                    borderRadius: 20,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    backdropFilter: 'blur(8px)'
+                  }}
+                >
+                  Demo listing
+                </span>
+              )}
             </div>
           </div>
+
+          {(displayGallery.length > 0 || item.showroom_url || !isComplete) && (
+            <div className="card" style={{ marginBottom: 16 }}>
+              <h2 style={{ marginTop: 0, fontSize: 18 }}>See the property</h2>
+              {item.showroom_url && (
+                <a href={item.showroom_url} target="_blank" rel="noreferrer" className="button" style={{ display: 'inline-block', marginBottom: 12 }}>
+                  Open apartment showroom
+                </a>
+              )}
+              {displayGallery.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 10 }}>
+                  {displayGallery.map((media, index) => (
+                    <div key={`${media.id}-${media.url}`} style={{ minWidth: 0 }}>
+                      <a href={media.url} target="_blank" rel="noreferrer">
+                        <img src={media.url} alt={media.caption || `${item.name} view ${index + 1}`} style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 10 }} />
+                      </a>
+                      {media.source_name && (
+                        <div style={{ marginTop: 5, fontSize: 11, color: 'var(--text-secondary)' }}>
+                          Source: {media.source_name}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!isComplete && (
+                <div style={{ marginTop: 14, padding: 14, borderRadius: 10, background: 'var(--bg-secondary)' }}>
+                  <strong>{item.construction_status === 'planned' ? 'Planned development' : 'Under construction'}</strong>
+                  {item.completion_date && <div style={{ marginTop: 4 }}>Expected completion: {new Date(item.completion_date).toLocaleDateString()}</div>}
+                  {item.planned_finish_description && <p style={{ marginBottom: 0, lineHeight: 1.6 }}>{item.planned_finish_description}</p>}
+                  {item.planned_finish_image_url && <img src={item.planned_finish_image_url} alt={`${item.name} planned finished product`} style={{ width: '100%', maxHeight: 360, objectFit: 'cover', borderRadius: 10, marginTop: 10 }} />}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Basic Information */}
           <div className="card" style={{ marginBottom: 16 }}>
@@ -322,6 +416,22 @@ const PropertyDetailsPage: React.FC = () => {
                   {item.sub_location ? `${item.sub_location}, ` : ''}
                   {[item.city, item.county, item.country].filter(Boolean).join(', ')}
                 </p>
+                {item.building_name && (
+                  <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>
+                    Building: {item.building_name}
+                  </p>
+                )}
+                {(item.source_name || item.verification_status) && (
+                  <p style={{ color: 'var(--text-secondary)', margin: '8px 0 0', fontSize: 13 }}>
+                    {item.source_name ? `Source: ${item.source_name}` : 'Listing source recorded'}
+                    {item.verification_status ? ` · ${item.verification_status.replaceAll('_', ' ').toLowerCase()}` : ''}
+                  </p>
+                )}
+                {mapUrl && (
+                  <a href={mapUrl} target="_blank" rel="noreferrer" className="button muted" style={{ display: 'inline-block', marginTop: 10 }}>
+                    Open map
+                  </a>
+                )}
               </div>
               {user && (
                 <button className="button muted" onClick={toggleFavorite} style={{ padding: '8px 12px' }}>

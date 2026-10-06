@@ -59,6 +59,7 @@ const ManagerMaintenance: React.FC = () => {
   return (
     <div className="management-container">
       <div className="management-header">
+        <span className="manager-eyebrow">Service coordination</span>
         <h1>Maintenance Requests</h1>
         <p>Track and manage maintenance issues</p>
       </div>

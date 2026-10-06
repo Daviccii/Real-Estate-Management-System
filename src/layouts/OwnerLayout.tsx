@@ -35,12 +35,13 @@ const OwnerSidebar: React.FC = () => {
         </button>
       </div>
 
+      <div className="owner-workspace-label">ASSET WORKSPACE</div>
       <nav className="nav" aria-label="Owner navigation">
         {menuItems.map((item) => (
           <Link
             key={item.path}
             to={item.path}
-            className={location.pathname === item.path ? 'active' : ''}
+            className={location.pathname === item.path || location.pathname.startsWith(item.path + '/') ? 'active' : ''}
             style={{ display: 'flex', alignItems: 'center', gap: 8 }}
           >
             <span style={{ fontSize: 16 }}>{item.icon}</span>
@@ -67,7 +68,8 @@ const OwnerHeader: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+      <div className="owner-header-meta" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div className="owner-sync-status"><span /> Portfolio synced</div>
         <span
           style={{
             background: '#4f46e5',

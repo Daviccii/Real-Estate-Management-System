@@ -5,12 +5,38 @@ import type { User, UserRole } from '../types'
 type AuthContextType = {
   user: User | null
   loading: boolean
-  login: (email:string,password:string)=>Promise<void>
+  login: (email:string,password:string)=>Promise<any>
   register: (email:string,password:string,full_name?:string)=>Promise<void>
   logout: ()=>void
   hasRole: (role: UserRole) => boolean
   hasAnyRole: (roles: UserRole[]) => boolean
   getDashboardPath: () => string
+}
+
+export const getRoleDashboardPath = (role?: string): string => {
+  const r = (role || '').toLowerCase()
+  switch (r) {
+    case 'admin':
+      return '/admin/dashboard'
+    case 'manager':
+      return '/manager/dashboard'
+    case 'owner':
+    case 'landlord':
+      return '/owner/dashboard'
+    case 'agent':
+    case 'realtor':
+      return '/agent/dashboard'
+    case 'tenant':
+    case 'resident':
+      return '/tenant/dashboard'
+    case 'service_provider':
+    case 'contractor':
+    case 'vendor':
+      return '/provider/dashboard'
+    case 'user':
+    default:
+      return '/tenant/dashboard'
+  }
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -64,6 +90,7 @@ export const AuthProvider: React.FC<{children:React.ReactNode}> = ({children}) =
 
   const hasRole = (role: UserRole): boolean => {
     if (!user) return false
+    if (user.role === 'admin') return true
     if (user.role === role) return true
     if (user.roles_csv) {
       return user.roles_csv.split(',').map(r => r.trim()).includes(role)
@@ -76,26 +103,10 @@ export const AuthProvider: React.FC<{children:React.ReactNode}> = ({children}) =
     return roles.some(role => hasRole(role))
   }
 
+
   const getDashboardPath = (): string => {
     if (!user) return '/login'
-    
-    switch (user.role) {
-      case 'admin':
-        return '/admin/dashboard'
-      case 'manager':
-        return '/manager/dashboard'
-      case 'owner':
-        return '/owner/dashboard'
-      case 'agent':
-        return '/agent/dashboard'
-      case 'tenant':
-        return '/tenant/dashboard'
-      case 'service_provider':
-        return '/provider/dashboard'
-      case 'user':
-      default:
-        return '/app'
-    }
+    return getRoleDashboardPath(user.role)
   }
 
   return (

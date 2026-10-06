@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { getPendingVerifications, reviewVerification } from '../../services/verification'
-import { VerificationRecord } from '../../types'
+import { getPendingVerifications, getVerificationEvidence, reviewVerification } from '../../services/verification'
+import { VerificationEvidence, VerificationRecord } from '../../types'
 
 export const AdminVerifications: React.FC = () => {
   const [verifications, setVerifications] = useState<VerificationRecord[]>([])
@@ -10,6 +10,7 @@ export const AdminVerifications: React.FC = () => {
   const [reviewNotes, setReviewNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [actionSuccess, setActionSuccess] = useState<string | null>(null)
+  const [evidence, setEvidence] = useState<VerificationEvidence[]>([])
 
   const loadData = async () => {
     setLoading(true)
@@ -37,6 +38,7 @@ export const AdminVerifications: React.FC = () => {
       })
       setActionSuccess(`Verification #${selectedVerification.id} successfully marked as ${status}.`)
       setSelectedVerification(null)
+      setEvidence([])
       setReviewNotes('')
       await loadData()
     } catch (err: any) {
@@ -152,9 +154,14 @@ export const AdminVerifications: React.FC = () => {
 
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       setSelectedVerification(record)
                       setReviewNotes('')
+                      try {
+                        setEvidence(await getVerificationEvidence(record.id))
+                      } catch {
+                        setEvidence([])
+                      }
                     }}
                     className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold shadow transition"
                   >
@@ -189,10 +196,15 @@ export const AdminVerifications: React.FC = () => {
               {selectedVerification.business_name && <div><strong>Firm:</strong> {selectedVerification.business_name}</div>}
               <div>
                 <strong>Document Link:</strong>{' '}
-                <a href={selectedVerification.document_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">
-                  {selectedVerification.document_url}
-                </a>
+                <span className="text-slate-500">Protected reference available to authorized reviewers</span>
               </div>
+              <div><strong>Evidence records:</strong> {evidence.length}</div>
+              {evidence.map((item) => (
+                <div key={item.id} className="border-t border-slate-200 pt-2 mt-2">
+                  <div><strong>{item.evidence_type.replace('_', ' ')}</strong> · {new Date(item.created_at).toLocaleString()}</div>
+                  {item.description && <div className="text-slate-500 mt-1">{item.description}</div>}
+                </div>
+              ))}
             </div>
 
             <div>

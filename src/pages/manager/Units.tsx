@@ -30,6 +30,7 @@ const ManagerUnits: React.FC = () => {
   return (
     <div className="management-container">
       <div className="management-header">
+       <span className="manager-eyebrow">Inventory control</span>
         <h1>Units</h1>
         <p>Manage all units in your properties</p>
       </div>

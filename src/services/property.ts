@@ -3,7 +3,7 @@ import { Property } from '../types'
 import { getToken } from './token'
 
 // Always uses the public endpoint for browsing — see list() below for why.
-const buildQuery = (params?: { skip?: number; limit?: number; search?: string; property_type?: string; city?: string; status?: string; sort?: string; purpose?: string }) => {
+const buildQuery = (params?: { skip?: number; limit?: number; search?: string; property_type?: string; city?: string; status?: string; sort?: string; purpose?: string; verified_only?: boolean }) => {
   const qs = new URLSearchParams()
   if (typeof params?.skip === 'number') qs.set('skip', String(params.skip))
   if (typeof params?.limit === 'number') qs.set('limit', String(params.limit))
@@ -13,6 +13,7 @@ const buildQuery = (params?: { skip?: number; limit?: number; search?: string; p
   if (params?.status) qs.set('status', params.status)
   if (params?.sort) qs.set('sort', params.sort)
   if (params?.purpose) qs.set('purpose', params.purpose)
+  if (params?.verified_only) qs.set('verified_only', 'true')
   return qs.toString()
 }
 
@@ -25,19 +26,19 @@ const buildQuery = (params?: { skip?: number; limit?: number; search?: string; p
 // filter by owner_id, so the authenticated route has no benefit here anyway —
 // always use the public endpoint for browsing, same as meta() and
 // marketInsights() below already do.
-const list = async (params?: { skip?: number; limit?: number; search?: string; property_type?: string; city?: string; status?: string; sort?: string; purpose?: string }): Promise<Property[]> => {
+const list = async (params?: { skip?: number; limit?: number; search?: string; property_type?: string; city?: string; status?: string; sort?: string; purpose?: string; verified_only?: boolean }): Promise<Property[]> => {
   const query = buildQuery(params)
   return api.request(query ? `/properties/public?${query}` : '/properties/public')
 }
 
-const pagedList = async (page = 1, limit = 6, params?: { search?: string; property_type?: string; city?: string; status?: string; sort?: string; purpose?: string }): Promise<Property[]> => {
+const pagedList = async (page = 1, limit = 6, params?: { search?: string; property_type?: string; city?: string; status?: string; sort?: string; purpose?: string; verified_only?: boolean }): Promise<Property[]> => {
   const skip = Math.max(0, (page - 1) * limit)
   return list(Object.assign({}, params || {}, { skip, limit }))
 }
 
 // Total count of properties matching the given filters (no skip/limit/sort) —
 // backs real "Page X of Y" pagination instead of inferring from a full page.
-const count = async (params?: { search?: string; property_type?: string; city?: string; status?: string; purpose?: string }): Promise<number> => {
+const count = async (params?: { search?: string; property_type?: string; city?: string; status?: string; purpose?: string; verified_only?: boolean }): Promise<number> => {
   const query = buildQuery(params)
   const res = await api.request<{ total: number }>(query ? `/properties/public/count?${query}` : '/properties/public/count')
   return res?.total ?? 0
@@ -89,18 +90,46 @@ const getContact = async (id: number): Promise<{
   return api.request(`/properties/public/${id}/contact`)
 }
 
-const create = async (payload: Partial<Property>): Promise<Property | null> => {
-  return api.request('/properties/', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  })
+async function syncStructuredMedia(propertyId: number, urlsText: string) {
+  const urls = urlsText.split(/\r?\n/).map(url => url.trim()).filter(Boolean)
+  for (const [index, url] of urls.entries()) {
+    await api.request(`/properties/${propertyId}/media`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url,
+        media_type: 'image',
+        source_type: 'OWNER_CURATED',
+        source_name: 'Submitted through PropNoxa property management',
+        is_primary: index === 0,
+        is_public: true,
+      }),
+    })
+  }
 }
 
-const update = async (id: number, payload: Partial<Property>): Promise<Property | null> => {
-  return api.request(`/properties/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(payload),
+const listMedia = async (id: number): Promise<NonNullable<Property['media']>> => {
+  return api.request(`/properties/${id}/media`)
+}
+
+const create = async (payload: Partial<Property> & { structured_media_urls?: string }): Promise<Property | null> => {
+  const { structured_media_urls, ...propertyPayload } = payload
+  const created = await api.request<Property>('/properties/', {
+    method: 'POST',
+    body: JSON.stringify(propertyPayload),
   })
+  if (created && structured_media_urls) await syncStructuredMedia(created.id, structured_media_urls)
+  return created
+}
+
+const update = async (id: number, payload: Partial<Property> & { structured_media_urls?: string }): Promise<Property | null> => {
+  const { structured_media_urls, ...propertyPayload } = payload
+  const updated = await api.request<Property>(`/properties/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(propertyPayload),
+  })
+  if (updated && structured_media_urls) await syncStructuredMedia(id, structured_media_urls)
+  return updated
 }
 
 const remove = async (id: number): Promise<boolean> => {
@@ -118,4 +147,4 @@ const match = async (criteria: any): Promise<Array<{ property: Property; match_s
 
 export const getProperties = list
 export const matchProperties = match
-export const propertyService = { list, pagedList, count, meta, marketInsights, get, getPublic, getContact, create, update, delete: remove, match }
+export const propertyService = { list, pagedList, count, meta, marketInsights, get, getPublic, getContact, listMedia, create, update, delete: remove, match }

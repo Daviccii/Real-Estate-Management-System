@@ -90,6 +90,7 @@ export const ProviderProfile: React.FC = () => {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
+        <span className="provider-eyebrow">Professional identity</span>
         <h1 className="text-2xl font-bold text-slate-800">Contractor Profile & Trade Accreditation</h1>
         <p className="text-slate-500 text-sm mt-1">
           Configure your service catalog, operational rates, coverage zones, and submit credentials for the Verified Contractor badge.

@@ -34,6 +34,13 @@ const PropertyForm: React.FC<Props> = ({ initial = {}, onSubmit, onCancel }) => 
   const [bathrooms,setBathrooms]=useState<string>(initial.bathrooms != null ? String(initial.bathrooms) : '')
   const [area,setArea]=useState(initial.area||'')
   const [image_url,setImageUrl]=useState(initial.image_url||'')
+  const [gallery_urls,setGalleryUrls]=useState(initial.gallery_urls||'')
+  const [structured_media_urls,setStructuredMediaUrls]=useState((initial.media || []).map((media: any) => media.url).join('\n'))
+  const [showroom_url,setShowroomUrl]=useState(initial.showroom_url||'')
+  const [construction_status,setConstructionStatus]=useState(initial.construction_status||'completed')
+  const [completion_date,setCompletionDate]=useState(initial.completion_date ? String(initial.completion_date).slice(0, 10) : '')
+  const [planned_finish_description,setPlannedFinishDescription]=useState(initial.planned_finish_description||'')
+  const [planned_finish_image_url,setPlannedFinishImageUrl]=useState(initial.planned_finish_image_url||'')
   const [description,setDescription]=useState(initial.description||'')
   const [deposit,setDeposit]=useState(initial.deposit||'')
   const [lease_term,setLeaseTerm]=useState(initial.lease_term||'')
@@ -71,6 +78,13 @@ const PropertyForm: React.FC<Props> = ({ initial = {}, onSubmit, onCancel }) => 
       bathrooms: showBedBath && bathrooms !== '' ? Number(bathrooms) : undefined,
       area: area || undefined,
       image_url: image_url || undefined,
+      gallery_urls: gallery_urls || undefined,
+      structured_media_urls,
+      showroom_url: showroom_url || undefined,
+      construction_status,
+      completion_date: completion_date || undefined,
+      planned_finish_description: planned_finish_description || undefined,
+      planned_finish_image_url: planned_finish_image_url || undefined,
       description: description || undefined,
       deposit: showRentFields ? (deposit || undefined) : undefined,
       lease_term: showRentFields ? (lease_term || undefined) : undefined,
@@ -202,6 +216,36 @@ const PropertyForm: React.FC<Props> = ({ initial = {}, onSubmit, onCancel }) => 
       <label>Image URL</label>
       <input value={image_url} onChange={e=>setImageUrl(e.target.value)} placeholder="https://…  (leave blank to auto-generate)" />
 
+      <label>Additional image URLs</label>
+      <textarea value={gallery_urls} onChange={e=>setGalleryUrls(e.target.value)} rows={3} placeholder="One image URL per line" />
+      <label>Structured media URLs</label>
+      <textarea value={structured_media_urls} onChange={e=>setStructuredMediaUrls(e.target.value)} rows={3} placeholder="One approved image URL per line" />
+
+      {property_type.toLowerCase() === 'apartment' && (
+        <>
+          <label>Showroom / model unit URL</label>
+          <input value={showroom_url} onChange={e=>setShowroomUrl(e.target.value)} placeholder="Photo or virtual tour URL" />
+        </>
+      )}
+
+      <label>Construction status</label>
+      <select value={construction_status} onChange={e=>setConstructionStatus(e.target.value)}>
+        <option value="completed">Completed</option>
+        <option value="under_construction">Under construction</option>
+        <option value="planned">Planned</option>
+      </select>
+
+      {construction_status !== 'completed' && (
+        <>
+          <label>Planned completion date</label>
+          <input type="date" value={completion_date} onChange={e=>setCompletionDate(e.target.value)} />
+          <label>Planned finished product</label>
+          <textarea value={planned_finish_description} onChange={e=>setPlannedFinishDescription(e.target.value)} rows={3} placeholder="Describe what buyers will receive when complete" />
+          <label>Planned finished product image URL</label>
+          <input value={planned_finish_image_url} onChange={e=>setPlannedFinishImageUrl(e.target.value)} placeholder="Architectural render or finished-product image" />
+        </>
+      )}
+
       <label style={{display:'flex',alignItems:'flex-start',gap:8,cursor:'pointer'}}>
         <input
           type="checkbox"
@@ -221,6 +265,11 @@ const PropertyForm: React.FC<Props> = ({ initial = {}, onSubmit, onCancel }) => 
       <textarea value={description} onChange={e=>setDescription(e.target.value)} rows={4} style={{width:'100%',resize:'vertical'}} />
 
       {error && <div style={{color:'var(--danger)'}}>{error}</div>}
+      {Object.keys(fieldErrors).length > 0 && (
+        <div style={{color:'var(--danger)'}} role="alert">
+          Please correct: {Object.values(fieldErrors).join(' ')}
+        </div>
+      )}
 
       <div style={{display:'flex',gap:8,marginTop:8}}>
         <button className="button" type="submit" disabled={loading}>{loading? 'Saving...':'Save'}</button>

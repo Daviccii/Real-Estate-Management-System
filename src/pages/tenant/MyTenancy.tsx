@@ -43,6 +43,7 @@ export const MyTenancy: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
+          <span className="tenant-eyebrow">Home overview</span>
           <h1 className="text-2xl font-bold text-slate-800">My Tenancy & Lease Agreement</h1>
           <p className="text-slate-500 text-sm mt-1">Official lease term records, rent schedule, and unit details.</p>
         </div>

@@ -30,18 +30,36 @@ function formatErrorMessage(data: any, fallback: string): string {
   return fallback
 }
 
+function normalizePath(path: string): string {
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  const trimmed = path.startsWith('/') ? path : `/${path}`
+  if (trimmed.startsWith('/api/') || trimmed === '/api') return trimmed
+  return `/api${trimmed}`
+}
+
 async function request<T = any>(path: string, opts: RequestInit = {}): Promise<T>{
-  const url = API_BASE + path
+  const base = (API_BASE || 'http://localhost:8000').replace(/\/+$/, '')
+  const url = path.startsWith('http://') || path.startsWith('https://') ? path : `${base}${normalizePath(path)}`
   const headers = new Headers(opts.headers as Record<string,string> || {})
   const token = getToken()
   if (token) headers.set('Authorization', `Bearer ${token}`)
 
-  const res = await fetch(url, {credentials: 'include', ...opts, headers})
+  let res: Response
+  try {
+    res = await fetch(url, {credentials: 'include', ...opts, headers})
+  } catch (error) {
+    const message = error instanceof TypeError
+      ? 'The backend service cannot be reached. Start the API and check its database connection.'
+      : 'The request could not be completed.'
+    throw new ApiError(message, 0, error)
+  }
   const text = await res.text()
   let data: any = null
   try{ data = text ? JSON.parse(text) : null }catch(e){ data = text }
   if (!res.ok) {
-    const message = formatErrorMessage(data, res.statusText || 'Request failed')
+    const message = res.status >= 500
+      ? 'The backend service is temporarily unavailable. Check the API database connection and try again.'
+      : formatErrorMessage(data, res.statusText || 'Request failed')
     throw new ApiError(message, res.status, data)
   }
   return data

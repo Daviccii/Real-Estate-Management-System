@@ -35,6 +35,7 @@ export const ProviderQuotes: React.FC = () => {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
+        <span className="provider-eyebrow">Commercial opportunities</span>
         <h1 className="text-2xl font-bold text-slate-800">Job Quotes & Marketplace Bids</h1>
         <p className="text-slate-500 text-sm mt-1">
           Submit competitive repair estimates, material costs, and labor hours for property maintenance tickets.

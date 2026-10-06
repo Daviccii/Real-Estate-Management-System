@@ -52,6 +52,11 @@ export const AdminAuditLogs: React.FC = () => {
       </div>
 
       {/* Filter Controls */}
+      <div className="admin-section-intro">
+        <span className="admin-eyebrow">Activity intelligence</span>
+        <strong>Review platform events with confidence</strong>
+        <span>Use the filters below to narrow down sensitive actions and operational changes.</span>
+      </div>
       <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-wrap items-center gap-4 text-xs font-medium text-slate-700">
         <div className="flex items-center gap-2">
           <label>Entity Type:</label>

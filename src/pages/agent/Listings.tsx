@@ -20,6 +20,7 @@ export const AgentListings: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
+          <span className="agent-eyebrow">Listing syndication</span>
           <h1 className="text-2xl font-bold text-slate-800">Agent Marketing Listings</h1>
           <p className="text-slate-500 text-sm mt-1">Properties assigned to you for client tours, inquiries, and lease negotiation.</p>
         </div>

@@ -31,6 +31,12 @@ export interface Property {
   status: string
   units_count?: number | null
   image_url?: string | null
+  gallery_urls?: string | null
+  showroom_url?: string | null
+  construction_status?: string | null
+  completion_date?: string | null
+  planned_finish_description?: string | null
+  planned_finish_image_url?: string | null
   price_label?: string | null
   price?: string | number | null
   bedrooms?: number | null
@@ -43,16 +49,51 @@ export interface Property {
   amenities?: string | null
   furnishing?: string | null
   parking_spaces?: number | null
+  latitude?: number | null
+  longitude?: number | null
+  landmark?: string | null
   is_verified?: boolean
   allow_direct_contact?: boolean
+  source_id?: number | null
+  source_type?: string | null
+  source_name?: string | null
+  source_reference?: string | null
+  verification_status?: string | null
+  last_verified_at?: string | null
+  listing_status?: string | null
+  is_demo?: boolean
+  media?: PropertyMedia[]
+  building_name?: string | null
+  building?: Building | null
   created_at?: string
   updated_at?: string
 }
 
+export interface PropertyMedia {
+  id: number
+  property_id?: number
+  url: string
+  media_type: string
+  source_type: string
+  source_name?: string | null
+  license_reference?: string | null
+  caption?: string | null
+  is_primary: boolean
+  is_public: boolean
+}
+
 export interface Building {
   id: number
-  property_id: number
+  property_id?: number | null
   name: string
+  address?: string | null
+  city?: string | null
+  county?: string | null
+  sub_location?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  landmark?: string | null
+  image_url?: string | null
   total_floors?: number | null
   units_count?: number | null
   amenities?: string | null
@@ -309,6 +350,16 @@ export interface VerificationRecord {
   user_name?: string
 }
 
+export interface VerificationEvidence {
+  id: number
+  verification_id: number
+  evidence_type: string
+  reference: string
+  description?: string | null
+  created_by_id?: number | null
+  created_at: string
+}
+
 export interface AuditLog {
   id: number
   user_id?: number | null
@@ -354,4 +405,3 @@ export interface Building {
   updated_at: string
   property_title?: string | null
 }
-
