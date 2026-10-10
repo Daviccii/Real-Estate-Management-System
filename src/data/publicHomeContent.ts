@@ -8,9 +8,8 @@ import { Property } from '../types'
  * listings, so the homepage still demonstrates the product. Replace/remove
  * once the public listings endpoint is reliably seeded.
  *
- * Everything else here (purpose copy, locations, intelligence cards, steps)
- * is homepage marketing copy, not live data — it does not claim to come
- * from the API.
+ * Marketing copy (purpose copy, location notes, intelligence cards, steps) is
+ * stored as translation keys; the strings live in src/i18n/translations.ts.
  */
 
 export type PropertyPurpose = 'buy' | 'rent' | 'invest'
@@ -20,65 +19,65 @@ export type PropertyPurpose = 'buy' | 'rent' | 'invest'
 export type PublicProperty = Property
 
 type PurposeCopy = {
-  title: string
-  subtitle: string
-  helper: string
+  titleKey: string
+  subtitleKey: string
+  helperKey: string
 }
 
 export const PUBLIC_PURPOSE_COPY: Record<PropertyPurpose, PurposeCopy> = {
   buy: {
-    title: 'Buy with confidence',
-    subtitle: 'Ownership-ready homes and developments across Nairobi and beyond.',
-    helper: 'Search live listings for sale, or tell us what you need and we\u2019ll narrow it down.',
+    titleKey: 'home.purpose.buy.title',
+    subtitleKey: 'home.purpose.buy.subtitle',
+    helperKey: 'home.purpose.buy.helper',
   },
   rent: {
-    title: 'Find your next rental',
-    subtitle: 'Apartments, houses and units ready to move into.',
-    helper: 'Filter by budget and bedrooms to see what\u2019s available to rent right now.',
+    titleKey: 'home.purpose.rent.title',
+    subtitleKey: 'home.purpose.rent.subtitle',
+    helperKey: 'home.purpose.rent.helper',
   },
   invest: {
-    title: 'Invest with intelligence',
-    subtitle: 'Opportunities selected for yield, growth and long-term value.',
-    helper: 'Explore investment-grade listings as the market intelligence layer comes online.',
+    titleKey: 'home.purpose.invest.title',
+    subtitleKey: 'home.purpose.invest.subtitle',
+    helperKey: 'home.purpose.invest.helper',
   },
 }
 
-export const PUBLIC_HOME_LOCATIONS: { label: string; note: string; to: string }[] = [
-  { label: 'Nairobi', note: 'The heart of the market \u2014 from CBD offices to Karen villas.', to: '/properties?location=Nairobi' },
-  { label: 'Mombasa', note: 'Coastal homes, holiday lets and beachfront investment.', to: '/properties?location=Mombasa' },
-  { label: 'Kisumu', note: 'A growing lakeside market with emerging developments.', to: '/properties?location=Kisumu' },
-  { label: 'Nakuru', note: 'Fast-expanding residential and commercial corridors.', to: '/properties?location=Nakuru' },
-  { label: 'Kiambu', note: 'Suburban growth on Nairobi\u2019s doorstep.', to: '/properties?location=Kiambu' },
+export const PUBLIC_HOME_LOCATIONS: { label: string; noteKey: string; to: string }[] = [
+  { label: 'Nairobi', noteKey: 'home.locations.nairobi.note', to: '/properties?location=Nairobi' },
+  { label: 'Mombasa', noteKey: 'home.locations.mombasa.note', to: '/properties?location=Mombasa' },
+  { label: 'Kisumu', noteKey: 'home.locations.kisumu.note', to: '/properties?location=Kisumu' },
+  { label: 'Nakuru', noteKey: 'home.locations.nakuru.note', to: '/properties?location=Nakuru' },
+  { label: 'Kiambu', noteKey: 'home.locations.kiambu.note', to: '/properties?location=Kiambu' },
 ]
 
-export const PUBLIC_HOME_INTELLIGENCE: { status: string; title: string; description: string }[] = [
+export const PUBLIC_HOME_INTELLIGENCE: { statusKey: string; titleKey: string; descriptionKey: string }[] = [
   {
-    status: 'Coming soon',
-    title: 'Market Trends',
-    description: 'Track how prices and demand move across neighbourhoods over time.',
+    statusKey: 'home.intel.comingSoon',
+    titleKey: 'home.intel.trends.title',
+    descriptionKey: 'home.intel.trends.desc',
   },
   {
-    status: 'Coming soon',
-    title: 'Property Values',
-    description: 'Understand what similar properties are actually worth today.',
+    statusKey: 'home.intel.comingSoon',
+    titleKey: 'home.intel.values.title',
+    descriptionKey: 'home.intel.values.desc',
   },
   {
-    status: 'Coming soon',
-    title: 'Neighbourhood Insights',
-    description: 'See the context around a listing \u2014 amenities, growth and character.',
+    statusKey: 'home.intel.comingSoon',
+    titleKey: 'home.intel.neighbourhood.title',
+    descriptionKey: 'home.intel.neighbourhood.desc',
   },
   {
-    status: 'Coming soon',
-    title: 'Investment Opportunities',
-    description: 'Surface listings that match a stronger yield or growth profile.',
+    statusKey: 'home.intel.comingSoon',
+    titleKey: 'home.intel.opportunities.title',
+    descriptionKey: 'home.intel.opportunities.desc',
   },
 ]
 
-export const PUBLIC_HOME_STEPS: { step: string; title: string; description: string }[] = [
-  { step: '01', title: 'Discover', description: 'Find properties matching your needs.' },
-  { step: '02', title: 'Understand', description: 'Explore property details, location and market context.' },
-  { step: '03', title: 'Compare', description: 'Evaluate your options side by side.' },
-  { step: '04', title: 'Act', description: 'Save, contact, schedule a viewing or apply.' },
+export const PUBLIC_HOME_STEPS: { step: string; titleKey: string; descriptionKey: string }[] = [
+  { step: '01', titleKey: 'home.steps.discover.title', descriptionKey: 'home.steps.discover.desc' },
+  { step: '02', titleKey: 'home.steps.understand.title', descriptionKey: 'home.steps.understand.desc' },
+  { step: '03', titleKey: 'home.steps.compare.title', descriptionKey: 'home.steps.compare.desc' },
+  { step: '04', titleKey: 'home.steps.act.title', descriptionKey: 'home.steps.act.desc' },
 ]
 
 // Sample-only fallback. Shape matches the live `Property` type used by

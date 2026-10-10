@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { propertyService } from '../services/property'
 import { useToast } from '../components/ToastProvider'
 import PropertyForm from '../components/PropertyForm'
+import TourEditor from '../components/TourEditor'
 import { Property } from '../types'
 
 const PropertyEditPage: React.FC = () => {
@@ -46,6 +47,7 @@ const PropertyEditPage: React.FC = () => {
           <div className="empty">Loading property…</div>
         )}
       </div>
+      {item && <TourEditor propertyId={Number(id)} />}
     </div>
   )
 }

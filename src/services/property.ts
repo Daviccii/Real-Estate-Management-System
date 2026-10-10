@@ -1,5 +1,5 @@
 import { api } from './api'
-import { Property } from '../types'
+import { Property, PropertyMatchCriteria, PropertyMatchResult, PropertyTour } from '../types'
 import { getToken } from './token'
 
 // Always uses the public endpoint for browsing — see list() below for why.
@@ -112,6 +112,33 @@ const listMedia = async (id: number): Promise<NonNullable<Property['media']>> =>
   return api.request(`/properties/${id}/media`)
 }
 
+// Virtual tours (P4-36). The public list endpoint needs no auth (PropertyDetails
+// uses it for any visitor); mutations are owner-or-admin enforced server-side.
+const listTours = async (id: number): Promise<PropertyTour[]> => {
+  return api.request(`/properties/${id}/tours`)
+}
+
+const addTour = async (id: number, payload: { url: string; title?: string; thumbnail_url?: string; sort_order?: number }): Promise<PropertyTour | null> => {
+  return api.request(`/properties/${id}/tours`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+const updateTour = async (id: number, tourId: number, payload: Partial<{ url: string; title: string; thumbnail_url: string; sort_order: number }>): Promise<PropertyTour | null> => {
+  return api.request(`/properties/${id}/tours/${tourId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+const removeTour = async (id: number, tourId: number): Promise<boolean> => {
+  await api.request(`/properties/${id}/tours/${tourId}`, { method: 'DELETE' })
+  return true
+}
+
 const create = async (payload: Partial<Property> & { structured_media_urls?: string }): Promise<Property | null> => {
   const { structured_media_urls, ...propertyPayload } = payload
   const created = await api.request<Property>('/properties/', {
@@ -137,7 +164,7 @@ const remove = async (id: number): Promise<boolean> => {
   return true
 }
 
-const match = async (criteria: any): Promise<Array<{ property: Property; match_score: number; match_reasons: string[] }>> => {
+const match = async (criteria: PropertyMatchCriteria): Promise<PropertyMatchResult[]> => {
   return api.request('/properties/match', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -147,4 +174,4 @@ const match = async (criteria: any): Promise<Array<{ property: Property; match_s
 
 export const getProperties = list
 export const matchProperties = match
-export const propertyService = { list, pagedList, count, meta, marketInsights, get, getPublic, getContact, listMedia, create, update, delete: remove, match }
+export const propertyService = { list, pagedList, count, meta, marketInsights, get, getPublic, getContact, listMedia, listTours, addTour, updateTour, removeTour, create, update, delete: remove, match }

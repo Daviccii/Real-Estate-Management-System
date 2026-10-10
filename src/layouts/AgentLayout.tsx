@@ -1,19 +1,23 @@
 import React, { useState } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
+import ThemeToggle from '../components/ThemeToggle'
+import LanguageToggle from '../components/LanguageToggle'
 import { useAuth } from '../contexts/AuthContext'
+import { useTranslation } from '../i18n/LanguageContext'
 
 const AgentSidebar: React.FC = () => {
+  const { t } = useTranslation()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
 
   const menuItems = [
-    { path: '/agent/dashboard', label: 'Dashboard', icon: '📊' },
-    { path: '/agent/leads', label: 'Leads Pipeline', icon: '🎯' },
-    { path: '/agent/listings', label: 'Assigned Listings', icon: '🏠' },
-    { path: '/agent/viewings', label: 'Viewing Tours', icon: '📅' },
-    { path: '/agent/applications', label: 'Rental Apps', icon: '📝' },
-    { path: '/agent/commissions', label: 'Commissions', icon: '💵' },
-    { path: '/agent/profile', label: 'EARB Accreditation', icon: '🛡️' }
+    { path: '/agent/dashboard', labelKey: 'navitem.dashboard', icon: '📊' },
+    { path: '/agent/leads', labelKey: 'navitem.leadsPipeline', icon: '🎯' },
+    { path: '/agent/listings', labelKey: 'navitem.assignedListings', icon: '🏠' },
+    { path: '/agent/viewings', labelKey: 'navitem.viewingTours', icon: '📅' },
+    { path: '/agent/applications', labelKey: 'navitem.rentalApps', icon: '📝' },
+    { path: '/agent/commissions', labelKey: 'navitem.commissions', icon: '💵' },
+    { path: '/agent/profile', labelKey: 'navitem.earb', icon: '🛡️' }
   ]
 
   return (
@@ -21,7 +25,7 @@ const AgentSidebar: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div className="brand">
           <span style={{ color: 'var(--primary)' }}>PropNoxa</span>
-          <span style={{ color: 'var(--muted)', fontSize: 12, marginLeft: 4 }}>Agent</span>
+          <span style={{ color: 'var(--muted)', fontSize: 12, marginLeft: 4 }}>{t('layout.role.agent')}</span>
         </div>
         <button
           className="button muted"
@@ -33,8 +37,8 @@ const AgentSidebar: React.FC = () => {
         </button>
       </div>
 
-      <div className="agent-workspace-label">DEAL DESK</div>
-      <nav className="nav" aria-label="Agent navigation">
+      <div className="agent-workspace-label">{t('layout.workspace.agent')}</div>
+      <nav className="nav" aria-label={t('layout.aria.agentNav')}>
         {menuItems.map((item) => (
           <Link
             key={item.path}
@@ -43,7 +47,7 @@ const AgentSidebar: React.FC = () => {
             style={{ display: 'flex', alignItems: 'center', gap: 8 }}
           >
             <span style={{ fontSize: 16 }}>{item.icon}</span>
-            {!collapsed && <span>{item.label}</span>}
+            {!collapsed && <span>{t(item.labelKey)}</span>}
           </Link>
         ))}
       </nav>
@@ -52,6 +56,7 @@ const AgentSidebar: React.FC = () => {
 }
 
 const AgentHeader: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
 
@@ -60,14 +65,16 @@ const AgentHeader: React.FC = () => {
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 700 }}>
-            Hello, {user?.full_name || user?.email || 'Licensed Agent'}
+            {t('layout.greeting.hello')} {user?.full_name || user?.email || t('layout.fallback.agent')}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)' }}>Agency Deal Pipeline & Client CRM</div>
+          <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('layout.subtitle.agent')}</div>
         </div>
       </div>
 
       <div className="agent-header-meta" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-        <div className="agent-sync-status"><span /> CRM synced</div>
+        <ThemeToggle />
+        <LanguageToggle />
+        <div className="agent-sync-status"><span /> {t('layout.sync.agent')}</div>
         <span
           style={{
             background: '#2563eb',
@@ -89,7 +96,7 @@ const AgentHeader: React.FC = () => {
           className="button"
           style={{ marginLeft: 12 }}
         >
-          Logout
+          {t('common.logout')}
         </button>
       </div>
     </header>

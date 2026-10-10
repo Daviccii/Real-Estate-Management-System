@@ -1,8 +1,10 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import Logo from './Logo'
+import { useTranslation } from '../i18n/LanguageContext'
 
 const PublicFooter: React.FC = ()=>{
+  const { t } = useTranslation()
   return (
     <footer className="public-footer">
       <div className="public-footer-inner">
@@ -11,47 +13,47 @@ const PublicFooter: React.FC = ()=>{
             <Logo variant="mark" size={28} />
             PropNoxa
           </div>
-          <p className="muted">Discover, compare and manage real estate with intelligence built for modern property journeys.</p>
+          <p className="muted">{t('footer.blurb')}</p>
         </div>
 
         <div className="footer-columns">
           <section>
-          <h4>Platform</h4>
+          <h4>{t('footer.platform')}</h4>
           <ul>
-            <li><Link to="/properties">Properties</Link></li>
-            <li><Link to="/buy">Buy</Link></li>
-            <li><Link to="/rent">Rent</Link></li>
-            <li><Link to="/invest">Invest</Link></li>
-            <li><Link to="/features">Market Insights</Link></li>
+            <li><Link to="/properties">{t('footer.properties')}</Link></li>
+            <li><Link to="/buy">{t('nav.buy')}</Link></li>
+            <li><Link to="/rent">{t('nav.rent')}</Link></li>
+            <li><Link to="/invest">{t('nav.invest')}</Link></li>
+            <li><Link to="/features">{t('nav.marketInsights')}</Link></li>
           </ul>
           </section>
 
           <section>
-          <h4>Company</h4>
+          <h4>{t('footer.company')}</h4>
           <ul>
-            <li><Link to="/about">About</Link></li>
-            <li><Link to="/contact">Contact</Link></li>
+            <li><Link to="/about">{t('footer.about')}</Link></li>
+            <li><Link to="/contact">{t('footer.contact')}</Link></li>
           </ul>
           </section>
 
           <section>
-          <h4>Account</h4>
+          <h4>{t('footer.account')}</h4>
           <ul>
-            <li><Link to="/login">Sign In</Link></li>
-            <li><Link to="/register">Create Account</Link></li>
+            <li><Link to="/login">{t('common.signIn')}</Link></li>
+            <li><Link to="/register">{t('common.createAccount')}</Link></li>
           </ul>
           </section>
 
           <section>
-            <h4>Legal</h4>
+            <h4>{t('footer.legal')}</h4>
             <ul>
-              <li><Link to="/privacy">Privacy</Link></li>
-              <li><span className="footer-placeholder">Terms (coming soon)</span></li>
+              <li><Link to="/privacy">{t('footer.privacy')}</Link></li>
+              <li><span className="footer-placeholder">{t('footer.terms')}</span></li>
             </ul>
           </section>
         </div>
       </div>
-      <div className="footer-bottom">© {new Date().getFullYear()} PropNoxa. All rights reserved.</div>
+      <div className="footer-bottom">{t('footer.rights', { year: new Date().getFullYear() })}</div>
     </footer>
   )
 }

@@ -34,6 +34,7 @@ import { FavoriteProvider } from './contexts/FavoriteContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import ToastProvider from './components/ToastProvider'
 import CookieConsent from './components/CookieConsent'
+import InstallPromptBanner from './components/InstallPromptBanner'
 import type { RouteRole } from './types'
 
 // Admin pages
@@ -66,6 +67,12 @@ import ManagerUnits from './pages/manager/Units'
 import ManagerInquiries from './pages/manager/Inquiries'
 import ManagerReports from './pages/manager/Reports'
 import ManagerSettings from './pages/manager/Settings'
+
+// Shared analytics dashboard (admin / manager / owner portals)
+import AnalyticsDashboard from './pages/AnalyticsDashboard'
+
+// Shared service marketplace directory (admin / manager / owner portals)
+import Marketplace from './pages/Marketplace'
 
 // Tenant pages
 import TenantDashboard from './pages/tenant/Dashboard'
@@ -100,6 +107,7 @@ import AgentProfile from './pages/agent/Profile'
 // Service Provider pages
 import ProviderDashboard from './pages/provider/Dashboard'
 import ProviderWorkOrders from './pages/provider/WorkOrders'
+import ProviderOpenJobs from './pages/provider/OpenJobs'
 import ProviderQuotes from './pages/provider/Quotes'
 import ProviderProfile from './pages/provider/Profile'
 
@@ -241,6 +249,7 @@ const App: React.FC = () => {
                   <Route path="/owner" element={<OwnerLayout />}>
                     <Route index element={<OwnerDashboard />} />
                     <Route path="dashboard" element={<OwnerDashboard />} />
+                    <Route path="analytics" element={<AnalyticsDashboard />} />
                     <Route path="properties" element={<OwnerProperties />} />
                     <Route path="units" element={<OwnerUnits />} />
                     <Route path="tenants" element={<OwnerTenants />} />
@@ -248,6 +257,7 @@ const App: React.FC = () => {
                     <Route path="financials" element={<OwnerFinancials />} />
                     <Route path="applications" element={<OwnerApplications />} />
                     <Route path="maintenance" element={<OwnerMaintenance />} />
+                    <Route path="marketplace" element={<Marketplace />} />
                     <Route path="settings" element={<OwnerSettings />} />
                   </Route>
                 </Route>
@@ -276,6 +286,7 @@ const App: React.FC = () => {
                     <Route index element={<ProviderDashboard />} />
                     <Route path="dashboard" element={<ProviderDashboard />} />
                     <Route path="work-orders" element={<ProviderWorkOrders />} />
+                    <Route path="open-jobs" element={<ProviderOpenJobs />} />
                     <Route path="quotes" element={<ProviderQuotes />} />
                     <Route path="profile" element={<ProviderProfile />} />
                   </Route>
@@ -288,11 +299,13 @@ const App: React.FC = () => {
                   <Route path="/manager" element={<ManagerLayout />}>
                     <Route index element={<ManagerDashboard />} />
                     <Route path="dashboard" element={<ManagerDashboard />} />
+                    <Route path="analytics" element={<AnalyticsDashboard />} />
                     <Route path="properties" element={<ManagerProperties />} />
                     <Route path="tenants" element={<ManagerTenants />} />
                     <Route path="leases" element={<ManagerLeases />} />
                     <Route path="payments" element={<ManagerPayments />} />
                     <Route path="maintenance" element={<ManagerMaintenance />} />
+                    <Route path="marketplace" element={<Marketplace />} />
                     <Route path="units" element={<ManagerUnits />} />
                     <Route path="inquiries" element={<ManagerInquiries />} />
                     <Route path="reports" element={<ManagerReports />} />
@@ -307,6 +320,7 @@ const App: React.FC = () => {
                   <Route path="/admin" element={<AdminLayout />}>
                     <Route index element={<AdminDashboard />} />
                     <Route path="dashboard" element={<AdminDashboard />} />
+                    <Route path="analytics" element={<AnalyticsDashboard />} />
                     <Route path="users" element={<UsersManagement />} />
                     <Route path="properties" element={<PropertiesManagement />} />
                     <Route path="buildings" element={<AdminBuildings />} />
@@ -314,6 +328,7 @@ const App: React.FC = () => {
                     <Route path="leases" element={<LeasesManagement />} />
                     <Route path="payments" element={<PaymentsManagement />} />
                     <Route path="maintenance" element={<MaintenanceManagement />} />
+                    <Route path="marketplace" element={<Marketplace />} />
                     <Route path="verifications" element={<AdminVerifications />} />
                     <Route path="audit-logs" element={<AdminAuditLogs />} />
                     <Route path="privacy" element={<AdminPrivacy />} />
@@ -332,6 +347,7 @@ const App: React.FC = () => {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <CookieConsent />
+            <InstallPromptBanner />
           </ToastProvider>
         </ErrorBoundary>
       </FavoriteProvider>

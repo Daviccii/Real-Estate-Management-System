@@ -1,22 +1,28 @@
 import React, { useState } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
+import ThemeToggle from '../components/ThemeToggle'
+import LanguageToggle from '../components/LanguageToggle'
 import { useAuth } from '../contexts/AuthContext'
+import { useTranslation } from '../i18n/LanguageContext'
 
 const ManagerSidebar: React.FC = () => {
+  const { t } = useTranslation()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
 
   const menuItems = [
-    { path: '/manager', label: 'Dashboard', icon: '📊' },
-    { path: '/manager/properties', label: 'Properties', icon: '🏠' },
-    { path: '/manager/tenants', label: 'Tenants', icon: '👥' },
-    { path: '/manager/leases', label: 'Leases', icon: '📄' },
-    { path: '/manager/payments', label: 'Payments', icon: '💰' },
-    { path: '/manager/maintenance', label: 'Maintenance', icon: '🔧' },
-    { path: '/manager/inquiries', label: 'Inquiries', icon: '💬' },
-    { path: '/manager/units', label: 'Units', icon: '🏢' },
-    { path: '/manager/reports', label: 'Reports', icon: '📈' },
-    { path: '/manager/settings', label: 'Settings', icon: '⚙️' },
+    { path: '/manager', labelKey: 'navitem.dashboard', icon: '📊' },
+    { path: '/manager/analytics', labelKey: 'navitem.analytics', icon: '📉' },
+    { path: '/manager/properties', labelKey: 'navitem.properties', icon: '🏠' },
+    { path: '/manager/tenants', labelKey: 'navitem.tenants', icon: '👥' },
+    { path: '/manager/leases', labelKey: 'navitem.leases', icon: '📄' },
+    { path: '/manager/payments', labelKey: 'navitem.payments', icon: '💰' },
+    { path: '/manager/maintenance', labelKey: 'navitem.maintenance', icon: '🔧' },
+    { path: '/manager/marketplace', labelKey: 'navitem.marketplace', icon: '🛠️' },
+    { path: '/manager/inquiries', labelKey: 'navitem.inquiries', icon: '💬' },
+    { path: '/manager/units', labelKey: 'navitem.units', icon: '🏢' },
+    { path: '/manager/reports', labelKey: 'navitem.reports', icon: '📈' },
+    { path: '/manager/settings', labelKey: 'navitem.settings', icon: '⚙️' },
   ]
 
   return (
@@ -24,7 +30,7 @@ const ManagerSidebar: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div className="brand">
           <span style={{ color: 'var(--primary)' }}>PropNoxa</span>
-          <span style={{ color: 'var(--muted)', fontSize: 12, marginLeft: 4 }}>Manager</span>
+          <span style={{ color: 'var(--muted)', fontSize: 12, marginLeft: 4 }}>{t('layout.role.manager')}</span>
         </div>
         <button 
           className="button muted" 
@@ -36,8 +42,8 @@ const ManagerSidebar: React.FC = () => {
         </button>
       </div>
       
-      <div className="manager-workspace-label">OPERATIONS HUB</div>
-      <nav className="nav" aria-label="Manager navigation">
+      <div className="manager-workspace-label">{t('layout.workspace.manager')}</div>
+      <nav className="nav" aria-label={t('layout.aria.managerNav')}>
         {menuItems.map((item) => (
           <Link 
             key={item.path} 
@@ -46,7 +52,7 @@ const ManagerSidebar: React.FC = () => {
             style={{ display: 'flex', alignItems: 'center', gap: 8 }}
           >
             <span style={{ fontSize: 16 }}>{item.icon}</span>
-            {!collapsed && <span>{item.label}</span>}
+            {!collapsed && <span>{t(item.labelKey)}</span>}
           </Link>
         ))}
       </nav>
@@ -55,6 +61,7 @@ const ManagerSidebar: React.FC = () => {
 }
 
 const ManagerHeader: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
 
@@ -68,16 +75,18 @@ const ManagerHeader: React.FC = () => {
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 700 }}>
-            Good morning, {user?.full_name || user?.email || 'Manager'}
+            {t('layout.greeting.morning')} {user?.full_name || user?.email || t('layout.fallback.manager')}
           </div>
           <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-            Property Management
+            {t('layout.subtitle.manager')}
           </div>
         </div>
       </div>
       
       <div className="manager-header-meta" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-        <div className="manager-sync-status"><span /> Portfolio live</div>
+        <ThemeToggle />
+        <LanguageToggle />
+        <div className="manager-sync-status"><span /> {t('layout.sync.manager')}</div>
         <div className="manager-badge" style={{ 
           background: 'var(--primary)', 
           color: 'white', 
@@ -91,7 +100,7 @@ const ManagerHeader: React.FC = () => {
         
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontWeight: 700, fontSize: 14 }}>
-            {user?.full_name || user?.email || 'Manager'}
+            {user?.full_name || user?.email || t('layout.fallback.manager')}
           </div>
           <div style={{ fontSize: 12, color: 'var(--muted)' }}>
             {user?.role || 'manager'}
@@ -103,7 +112,7 @@ const ManagerHeader: React.FC = () => {
           className="button"
           style={{ marginLeft: 12 }}
         >
-          Logout
+          {t('common.logout')}
         </button>
       </div>
     </header>

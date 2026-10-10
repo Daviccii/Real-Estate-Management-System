@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import './Home.css'
 import { propertyService } from '../services/property'
@@ -7,6 +7,7 @@ import PropertyCard from '../components/PropertyCard'
 import Skeleton from '../components/Skeleton'
 import { PUBLIC_FEATURED_PROPERTIES_FALLBACK, PUBLIC_HOME_INTELLIGENCE, PUBLIC_HOME_LOCATIONS, PUBLIC_HOME_STEPS, PUBLIC_PURPOSE_COPY, PropertyPurpose } from '../data/publicHomeContent'
 import { PROPERTY_TYPES, BUDGETS, BEDROOMS } from '../data/propertySearchOptions'
+import { useTranslation } from '../i18n/LanguageContext'
 
 // FIX: source.unsplash.com (Unsplash Source) was deprecated and shut down in
 // 2023 — this hero image was silently failing to load. picsum.photos is a
@@ -23,6 +24,7 @@ type SearchState = {
 }
 
 export default function Home() {
+  const { t } = useTranslation()
   const [search, setSearch] = useState<SearchState>({
     location: '',
     propertyType: '',
@@ -32,7 +34,7 @@ export default function Home() {
   })
   const [featured, setFeatured] = useState<Property[] | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [errorKey, setErrorKey] = useState<string | null>(null)
   const [featuredSource, setFeaturedSource] = useState<'api' | 'fallback' | null>(null)
   const [portfolioTotal, setPortfolioTotal] = useState<number | null>(null)
   const [portfolioUnits, setPortfolioUnits] = useState<number | null>(null)
@@ -66,7 +68,7 @@ export default function Home() {
   useEffect(()=>{
     let mounted = true
     setLoading(true)
-    setError(null)
+    setErrorKey(null)
     Promise.allSettled([
       propertyService.meta(),
       propertyService.list({ limit: 6, sort: 'newest' }),
@@ -86,16 +88,16 @@ export default function Home() {
         setFeaturedSource('api')
       } else {
         if (listResult.status === 'rejected') {
-          setError('Live inventory is unavailable right now. Showing a curated sample set.')
+          setErrorKey('home.featured.errorUnavailable')
         } else {
-          setError('No live featured properties are available yet. Showing a curated sample set.')
+          setErrorKey('home.featured.errorEmpty')
         }
         setFeatured(PUBLIC_FEATURED_PROPERTIES_FALLBACK)
         setFeaturedSource('fallback')
       }
-    }).catch((err) => {
+    }).catch(() => {
       if (!mounted) return
-      setError(err instanceof Error ? err.message : 'Failed to load featured properties')
+      setErrorKey('home.featured.errorFallback')
       setFeatured(PUBLIC_FEATURED_PROPERTIES_FALLBACK)
       setFeaturedSource('fallback')
     }).finally(() => {
@@ -106,10 +108,9 @@ export default function Home() {
 
   const purposeCopy = PUBLIC_PURPOSE_COPY[search.purpose]
 
-  const liveListingsLabel = useMemo(() => {
-    if (typeof portfolioTotal === 'number') return `${portfolioTotal} live listings`
-    return 'Curated public inventory'
-  }, [portfolioTotal])
+  const liveListingsLabel = typeof portfolioTotal === 'number'
+    ? t('home.hero.liveListings', { count: portfolioTotal })
+    : t('home.hero.curatedInventory')
 
   const featuredCards = featured && featured.length > 0 ? featured : PUBLIC_FEATURED_PROPERTIES_FALLBACK
 
@@ -121,11 +122,11 @@ export default function Home() {
     <div className="pn-home">
       <section className="pn-hero">
         <div className="pn-hero-copy">
-          <span className="pn-kicker">Real estate discovery, management and intelligence in one place</span>
-          <h1 className="pn-hero-title">Find Property That Fits Your Life.</h1>
-          <p className="pn-hero-lead">Discover homes, investments and opportunities with smarter property search and real estate intelligence.</p>
+          <span className="pn-kicker">{t('home.kicker')}</span>
+          <h1 className="pn-hero-title">{t('home.title')}</h1>
+          <p className="pn-hero-lead">{t('home.lead')}</p>
 
-          <div className="pn-purpose-switcher" role="tablist" aria-label="Property purpose">
+          <div className="pn-purpose-switcher" role="tablist" aria-label={t('home.purpose.aria')}>
             {(['buy', 'rent', 'invest'] as PropertyPurpose[]).map((purpose) => (
               <button
                 key={purpose}
@@ -135,57 +136,57 @@ export default function Home() {
                 className={search.purpose === purpose ? 'is-active' : ''}
                 onClick={() => setSearch((current) => ({ ...current, purpose }))}
               >
-                {purpose.charAt(0).toUpperCase() + purpose.slice(1)}
+                {t(`nav.${purpose}`)}
               </button>
             ))}
           </div>
 
           <div className="pn-purpose-copy">
-            <strong>{purposeCopy.title}</strong>
-            <span>{purposeCopy.subtitle}</span>
+            <strong>{t(purposeCopy.titleKey)}</strong>
+            <span>{t(purposeCopy.subtitleKey)}</span>
           </div>
 
-          <form className="pn-search-panel" onSubmit={handleSearch} role="search" aria-label="Homepage property search">
+          <form className="pn-search-panel" onSubmit={handleSearch} role="search" aria-label={t('home.search.aria')}>
             <div className="pn-search-grid">
               <label className="pn-field">
-                <span>Location</span>
+                <span>{t('home.search.location')}</span>
                 <input
                   type="text"
                   value={search.location}
                   onChange={(event) => setSearch((current) => ({ ...current, location: event.target.value }))}
-                  placeholder="Nairobi, Mombasa, Kiambu"
-                  aria-label="Location"
+                  placeholder={t('home.search.locationPlaceholder')}
+                  aria-label={t('home.search.location')}
                 />
               </label>
 
               <label className="pn-field">
-                <span>Property type</span>
+                <span>{t('home.search.propertyType')}</span>
                 <select
                   value={search.propertyType}
                   onChange={(event) => setSearch((current) => ({ ...current, propertyType: event.target.value }))}
-                  aria-label="Property type"
+                  aria-label={t('home.search.propertyType')}
                 >
                   {PROPERTY_TYPES.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
                 </select>
               </label>
 
               <label className="pn-field">
-                <span>Budget</span>
+                <span>{t('home.search.budget')}</span>
                 <select
                   value={search.budget}
                   onChange={(event) => setSearch((current) => ({ ...current, budget: event.target.value }))}
-                  aria-label="Budget"
+                  aria-label={t('home.search.budget')}
                 >
                   {BUDGETS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
                 </select>
               </label>
 
               <label className="pn-field">
-                <span>Bedrooms</span>
+                <span>{t('home.search.bedrooms')}</span>
                 <select
                   value={search.bedrooms}
                   onChange={(event) => setSearch((current) => ({ ...current, bedrooms: event.target.value }))}
-                  aria-label="Bedrooms"
+                  aria-label={t('home.search.bedrooms')}
                 >
                   {BEDROOMS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
                 </select>
@@ -193,11 +194,11 @@ export default function Home() {
             </div>
 
             <div className="pn-search-actions">
-              <button type="submit" className="pn-btn pn-btn-primary">Explore Properties</button>
-              <button type="button" className="pn-btn pn-btn-secondary" onClick={() => navigate(buildPropertiesUrl({ match: true }))}>Find My Match</button>
+              <button type="submit" className="pn-btn pn-btn-primary">{t('home.search.explore')}</button>
+              <button type="button" className="pn-btn pn-btn-secondary" onClick={() => navigate(buildPropertiesUrl({ match: true }))}>{t('home.search.findMatch')}</button>
             </div>
 
-            <p className="pn-search-help">{purposeCopy.helper}</p>
+            <p className="pn-search-help">{t(purposeCopy.helperKey)}</p>
           </form>
         </div>
 
@@ -206,38 +207,38 @@ export default function Home() {
             <img src={HERO_IMAGE} alt="" className="pn-hero-image" loading="eager" />
           </div>
           <div className="pn-hero-panel pn-hero-panel-main">
-            <span className="pn-hero-panel-label">Live inventory</span>
+            <span className="pn-hero-panel-label">{t('home.hero.liveInventory')}</span>
             <strong>{liveListingsLabel}</strong>
-            <span>{featuredSource === 'fallback' ? 'Sample showcase until live inventory is available.' : 'Featured properties pulled from the live platform.'}</span>
+            <span>{featuredSource === 'fallback' ? t('home.hero.sampleNote') : t('home.hero.liveNote')}</span>
           </div>
           <div className="pn-hero-panel pn-hero-panel-secondary">
-            <span className="pn-hero-panel-label">Search intent</span>
-            <strong>{purposeCopy.title}</strong>
-            <span>{purposeCopy.subtitle}</span>
+            <span className="pn-hero-panel-label">{t('home.hero.searchIntent')}</span>
+            <strong>{t(purposeCopy.titleKey)}</strong>
+            <span>{t(purposeCopy.subtitleKey)}</span>
           </div>
         </div>
       </section>
 
-      <section className="pn-section pn-intro-grid" aria-label="Platform highlights">
+      <section className="pn-section pn-intro-grid" aria-label={t('home.intro.aria')}>
         <article className="pn-highlight-card">
           <span className="pn-section-label">01</span>
-          <h2>Property discovery built for decision making.</h2>
-          <p>Search by purpose, budget, bedroom count and location without losing the broader market context.</p>
+          <h2>{t('home.intro.card1.title')}</h2>
+          <p>{t('home.intro.card1.body')}</p>
         </article>
         <article className="pn-highlight-card">
           <span className="pn-section-label">02</span>
-          <h2>Structured for intelligence later.</h2>
-          <p>The homepage already separates search, discovery and future market signals so recommendations can plug in cleanly.</p>
+          <h2>{t('home.intro.card2.title')}</h2>
+          <p>{t('home.intro.card2.body')}</p>
         </article>
       </section>
 
       <section className="pn-section">
         <div className="pn-section-head">
           <div>
-            <span className="pn-section-label">Featured properties</span>
-            <h2>Featured Properties</h2>
+            <span className="pn-section-label">{t('home.featured.label')}</span>
+            <h2>{t('home.featured.title')}</h2>
           </div>
-          <p>Public listings from the platform when available, with a clearly isolated sample fallback to keep the homepage useful in development.</p>
+          <p>{t('home.featured.body')}</p>
         </div>
 
         {loading ? (
@@ -260,7 +261,7 @@ export default function Home() {
           </div>
         ) : (
           <>
-            {error && <div className="pn-inline-state pn-inline-state-warning" role="status">{error}</div>}
+            {errorKey && <div className="pn-inline-state pn-inline-state-warning" role="status">{t(errorKey)}</div>}
             <div className="pn-featured-grid" aria-live="polite">
               {featuredCards.map((property) => (
                 <PropertyCard
@@ -273,10 +274,10 @@ export default function Home() {
               ))}
             </div>
             <div className="pn-section-footer">
-              <span>{portfolioUnits != null ? `${portfolioUnits} managed units in the public inventory` : 'Inventory available on the public platform'}</span>
+              <span>{portfolioUnits != null ? t('home.featured.units', { count: portfolioUnits }) : t('home.featured.inventory')}</span>
               <div className="pn-section-footer-actions">
-                <Link to="/properties" className="pn-btn pn-btn-ghost">View All Properties</Link>
-                <Link to="/buy" className="pn-btn pn-btn-ghost">Browse Buy</Link>
+                <Link to="/properties" className="pn-btn pn-btn-ghost">{t('home.featured.viewAll')}</Link>
+                <Link to="/buy" className="pn-btn pn-btn-ghost">{t('home.featured.browseBuy')}</Link>
               </div>
             </div>
           </>
@@ -286,10 +287,10 @@ export default function Home() {
       <section className="pn-section">
         <div className="pn-section-head">
           <div>
-            <span className="pn-section-label">Matchmaker</span>
-            <h2>Don't Just Search. Find Your Match.</h2>
+            <span className="pn-section-label">{t('home.match.label')}</span>
+            <h2>{t('home.match.title')}</h2>
           </div>
-          <p>Describe what you need now. The structure is ready for intelligent recommendations later.</p>
+          <p>{t('home.match.body')}</p>
         </div>
 
         <form className="pn-match-panel" onSubmit={(event) => {
@@ -298,39 +299,39 @@ export default function Home() {
         }}>
           <div className="pn-search-grid pn-search-grid-match">
             <label className="pn-field">
-              <span>Location</span>
-              <input type="text" value={search.location} onChange={(event) => setSearch((current) => ({ ...current, location: event.target.value }))} placeholder="Where do you want to live or invest?" />
+              <span>{t('home.search.location')}</span>
+              <input type="text" value={search.location} onChange={(event) => setSearch((current) => ({ ...current, location: event.target.value }))} placeholder={t('home.match.locationPlaceholder')} />
             </label>
             <label className="pn-field">
-              <span>Budget</span>
+              <span>{t('home.search.budget')}</span>
               <select value={search.budget} onChange={(event) => setSearch((current) => ({ ...current, budget: event.target.value }))}>
                 {BUDGETS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
               </select>
             </label>
             <label className="pn-field">
-              <span>Bedrooms</span>
+              <span>{t('home.search.bedrooms')}</span>
               <select value={search.bedrooms} onChange={(event) => setSearch((current) => ({ ...current, bedrooms: event.target.value }))}>
                 {BEDROOMS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
               </select>
             </label>
             <label className="pn-field">
-              <span>Property type</span>
+              <span>{t('home.search.propertyType')}</span>
               <select value={search.propertyType} onChange={(event) => setSearch((current) => ({ ...current, propertyType: event.target.value }))}>
                 {PROPERTY_TYPES.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
               </select>
             </label>
             <label className="pn-field">
-              <span>Purpose</span>
+              <span>{t('home.search.purpose')}</span>
               <select value={search.purpose} onChange={(event) => setSearch((current) => ({ ...current, purpose: event.target.value as PropertyPurpose }))}>
-                <option value="buy">Buy</option>
-                <option value="rent">Rent</option>
-                <option value="invest">Invest</option>
+                <option value="buy">{t('nav.buy')}</option>
+                <option value="rent">{t('nav.rent')}</option>
+                <option value="invest">{t('nav.invest')}</option>
               </select>
             </label>
           </div>
           <div className="pn-search-actions">
-            <button type="submit" className="pn-btn pn-btn-primary">Find My Property</button>
-            <button type="button" className="pn-btn pn-btn-secondary" onClick={() => navigate(buildPropertiesUrl({ match: true, purpose: search.purpose }))}>Use My Current Match</button>
+            <button type="submit" className="pn-btn pn-btn-primary">{t('home.match.findProperty')}</button>
+            <button type="button" className="pn-btn pn-btn-secondary" onClick={() => navigate(buildPropertiesUrl({ match: true, purpose: search.purpose }))}>{t('home.match.useCurrent')}</button>
           </div>
         </form>
       </section>
@@ -338,17 +339,17 @@ export default function Home() {
       <section className="pn-section">
         <div className="pn-section-head">
           <div>
-            <span className="pn-section-label">Locations</span>
-            <h2>Explore by Location</h2>
+            <span className="pn-section-label">{t('home.locations.label')}</span>
+            <h2>{t('home.locations.title')}</h2>
           </div>
-          <p>Move directly into the places people already search for most.</p>
+          <p>{t('home.locations.body')}</p>
         </div>
         <div className="pn-location-grid">
           {PUBLIC_HOME_LOCATIONS.map((location) => (
             <Link key={location.label} to={location.to} className="pn-location-card">
               <span className="pn-location-name">{location.label}</span>
-              <span className="pn-location-note">{location.note}</span>
-              <span className="pn-location-action">Explore listings</span>
+              <span className="pn-location-note">{t(location.noteKey)}</span>
+              <span className="pn-location-action">{t('home.locations.explore')}</span>
             </Link>
           ))}
         </div>
@@ -357,18 +358,18 @@ export default function Home() {
       <section className="pn-section">
         <div className="pn-section-head">
           <div>
-            <span className="pn-section-label">Intelligence</span>
-            <h2>Understand the Market. Make Better Decisions.</h2>
+            <span className="pn-section-label">{t('home.intel.label')}</span>
+            <h2>{t('home.intel.title')}</h2>
           </div>
-          <p>These capabilities are being structured for future market data and recommendation feeds without pretending the intelligence layer already exists.</p>
+          <p>{t('home.intel.body')}</p>
         </div>
         <div className="pn-intelligence-grid">
           {PUBLIC_HOME_INTELLIGENCE.map((item) => (
-            <Link key={item.title} to="/features" className="pn-intelligence-card">
-              <span className="pn-card-status">{item.status}</span>
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
-              <span className="pn-card-link">Learn more</span>
+            <Link key={item.titleKey} to="/features" className="pn-intelligence-card">
+              <span className="pn-card-status">{t(item.statusKey)}</span>
+              <h3>{t(item.titleKey)}</h3>
+              <p>{t(item.descriptionKey)}</p>
+              <span className="pn-card-link">{t('home.intel.learnMore')}</span>
             </Link>
           ))}
         </div>
@@ -377,17 +378,17 @@ export default function Home() {
       <section className="pn-section">
         <div className="pn-section-head">
           <div>
-            <span className="pn-section-label">How it works</span>
-            <h2>How It Works</h2>
+            <span className="pn-section-label">{t('home.steps.label')}</span>
+            <h2>{t('home.steps.title')}</h2>
           </div>
-          <p>A clean path from discovery to action, designed for future client workflows too.</p>
+          <p>{t('home.steps.body')}</p>
         </div>
         <div className="pn-steps-grid">
           {PUBLIC_HOME_STEPS.map((step) => (
             <article key={step.step} className="pn-step-card">
               <span className="pn-step-number">{step.step}</span>
-              <h3>{step.title}</h3>
-              <p>{step.description}</p>
+              <h3>{t(step.titleKey)}</h3>
+              <p>{t(step.descriptionKey)}</p>
             </article>
           ))}
         </div>
@@ -395,13 +396,13 @@ export default function Home() {
 
       <section className="pn-section pn-cta-panel">
         <div>
-          <span className="pn-section-label">Next step</span>
-          <h2>Your Next Property Starts Here.</h2>
-          <p>Explore listings or create an account to unlock the next layer of the real estate operating system.</p>
+          <span className="pn-section-label">{t('home.cta.label')}</span>
+          <h2>{t('home.cta.title')}</h2>
+          <p>{t('home.cta.body')}</p>
         </div>
         <div className="pn-search-actions">
-          <Link to="/properties" className="pn-btn pn-btn-primary">Explore Properties</Link>
-          <Link to="/register" className="pn-btn pn-btn-secondary">Create Account</Link>
+          <Link to="/properties" className="pn-btn pn-btn-primary">{t('home.search.explore')}</Link>
+          <Link to="/register" className="pn-btn pn-btn-secondary">{t('common.createAccount')}</Link>
         </div>
       </section>
     </div>

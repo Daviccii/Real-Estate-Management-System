@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite'
 
+import { createPwaPrecachePlugin } from './src/pwa/swBuild'
+
 export default defineConfig({
+  plugins: [createPwaPrecachePlugin()],
   build: {
     rollupOptions: {
       output: {

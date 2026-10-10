@@ -86,6 +86,19 @@ export interface PropertyMedia {
   is_public: boolean
 }
 
+export interface PropertyTour {
+  id: number
+  property_id: number
+  title?: string | null
+  url: string
+  provider: string
+  embed_url?: string | null
+  thumbnail_url?: string | null
+  sort_order: number
+  created_at?: string
+  updated_at?: string
+}
+
 export interface Building {
   id: number
   property_id?: number | null
@@ -284,22 +297,67 @@ export interface Message {
   sender_email?: string
 }
 
+export interface Paginated<T> {
+  items: T[]
+  total: number
+  page: number
+  page_size: number
+}
+
 export interface ServiceProviderProfile {
   id: number
   user_id: number
   company_name: string
+  business_name?: string
   categories: string[]
+  specialty?: string
   service_areas: string[]
   hourly_rate?: string | null
   license_number?: string | null
   insurance_verified: boolean
-  rating_avg: number
+  bio?: string | null
+  years_experience?: number | null
+  rating_avg: number | null
+  reviews_count: number
   completed_jobs_count: number
   is_available: boolean
   created_at: string
   user_name?: string
-  user_email?: string
-  user_phone?: string
+  user_email?: string | null
+  user_phone?: string | null
+}
+
+export interface ProviderReview {
+  id: number
+  provider_id: number
+  work_order_id?: number | null
+  score: number
+  comment?: string | null
+  created_at: string
+  reviewer_name: string
+  maintenance_title?: string | null
+}
+
+export interface ProviderReviewPage extends Paginated<ProviderReview> {
+  rating_avg: number | null
+  reviews_count: number
+}
+
+export interface OpenMaintenanceRequest {
+  id: number
+  title: string
+  description?: string | null
+  category?: string | null
+  priority?: string | null
+  status: string
+  city?: string | null
+  county?: string | null
+  property_type?: string | null
+  created_at: string
+  quotes_count: number
+  my_quote_id?: number | null
+  my_quote_status?: string | null
+  my_quote_amount?: string | null
 }
 
 export interface MaintenanceQuote {
@@ -318,6 +376,7 @@ export interface MaintenanceQuote {
 export interface MaintenanceWorkOrder {
   id: number
   request_id: number
+  maintenance_id?: number
   property_id: number
   unit_id?: number | null
   provider_id: number
@@ -334,6 +393,12 @@ export interface MaintenanceWorkOrder {
   property_name?: string
   provider_company?: string
   request_title?: string
+  title?: string
+  description?: string
+  priority?: string
+  has_review?: boolean
+  review_score?: number | null
+  can_review?: boolean
 }
 
 export interface VerificationRecord {
@@ -394,5 +459,7 @@ export interface PropertyMatchCriteria {
 export interface PropertyMatchResult {
   property: Property
   match_score: number
+  match_label: string
   match_reasons: string[]
+  score_breakdown: Record<string, number>
 }

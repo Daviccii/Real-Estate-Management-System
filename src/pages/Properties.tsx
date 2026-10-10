@@ -13,6 +13,7 @@ import { PROPERTY_TYPES, BUDGETS, BEDROOMS, CITY_SUGGESTIONS, budgetBucketBounds
 import { PropertyPurpose } from '../data/publicHomeContent'
 import SmartMatchModal from '../components/SmartMatchModal'
 import PropertyComparisonModal from '../components/PropertyComparisonModal'
+import VoiceSearchButton from '../components/VoiceSearchButton'
 
 const PAGE_SIZE = 9
 
@@ -209,6 +210,11 @@ const PropertiesPage: React.FC = () => {
         </div>
         <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
           <input className="input" style={{flex:'1 1 220px',minWidth:0}} placeholder="Search by name, location or type" value={q} onChange={e=>setQ(e.target.value)} />
+          <VoiceSearchButton
+            label="Search by voice"
+            onResult={(transcript) => { setQ(transcript); syncUrl({ q: transcript }); fetch({ q: transcript, page: 1 }) }}
+            onError={(message) => addToast({ message, type: 'error' })}
+          />
           <button className="button" style={{flexShrink:0}} onClick={handleSearch}>Search</button>
           <button
             className="button"

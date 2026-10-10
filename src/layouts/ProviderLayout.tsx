@@ -1,16 +1,21 @@
 import React, { useState } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
+import ThemeToggle from '../components/ThemeToggle'
+import LanguageToggle from '../components/LanguageToggle'
 import { useAuth } from '../contexts/AuthContext'
+import { useTranslation } from '../i18n/LanguageContext'
 
 const ProviderSidebar: React.FC = () => {
+  const { t } = useTranslation()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
 
   const menuItems = [
-    { path: '/provider/dashboard', label: 'Dashboard', icon: '📊' },
-    { path: '/provider/work-orders', label: 'Field Work Orders', icon: '🔧' },
-    { path: '/provider/quotes', label: 'Quote Bids', icon: '📝' },
-    { path: '/provider/profile', label: 'Trade Profile & NCA', icon: '🛡️' }
+    { path: '/provider/dashboard', labelKey: 'navitem.dashboard', icon: '📊' },
+    { path: '/provider/open-jobs', labelKey: 'navitem.openJobs', icon: '📢' },
+    { path: '/provider/work-orders', labelKey: 'navitem.workOrders', icon: '🔧' },
+    { path: '/provider/quotes', labelKey: 'navitem.quoteBids', icon: '📝' },
+    { path: '/provider/profile', labelKey: 'navitem.tradeProfile', icon: '🛡️' }
   ]
 
   return (
@@ -18,7 +23,7 @@ const ProviderSidebar: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div className="brand">
           <span style={{ color: 'var(--primary)' }}>PropNoxa</span>
-          <span style={{ color: 'var(--muted)', fontSize: 12, marginLeft: 4 }}>Contractor</span>
+          <span style={{ color: 'var(--muted)', fontSize: 12, marginLeft: 4 }}>{t('layout.role.provider')}</span>
         </div>
         <button
           className="button muted"
@@ -30,8 +35,8 @@ const ProviderSidebar: React.FC = () => {
         </button>
       </div>
 
-      <div className="provider-workspace-label">FIELD OPERATIONS</div>
-      <nav className="nav" aria-label="Provider navigation">
+      <div className="provider-workspace-label">{t('layout.workspace.provider')}</div>
+      <nav className="nav" aria-label={t('layout.aria.providerNav')}>
         {menuItems.map((item) => (
           <Link
             key={item.path}
@@ -40,7 +45,7 @@ const ProviderSidebar: React.FC = () => {
             style={{ display: 'flex', alignItems: 'center', gap: 8 }}
           >
             <span style={{ fontSize: 16 }}>{item.icon}</span>
-            {!collapsed && <span>{item.label}</span>}
+            {!collapsed && <span>{t(item.labelKey)}</span>}
           </Link>
         ))}
       </nav>
@@ -49,6 +54,7 @@ const ProviderSidebar: React.FC = () => {
 }
 
 const ProviderHeader: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
 
@@ -57,14 +63,16 @@ const ProviderHeader: React.FC = () => {
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 700 }}>
-            Good day, {user?.full_name || user?.email || 'Service Provider'}
+            {t('layout.greeting.day')} {user?.full_name || user?.email || t('layout.fallback.provider')}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)' }}>Field Service & Repair Marketplace</div>
+          <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('layout.subtitle.provider')}</div>
         </div>
       </div>
 
       <div className="provider-header-meta" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-        <div className="provider-sync-status"><span /> Dispatch online</div>
+        <ThemeToggle />
+        <LanguageToggle />
+        <div className="provider-sync-status"><span /> {t('layout.sync.provider')}</div>
         <span
           style={{
             background: '#d97706',
@@ -86,7 +94,7 @@ const ProviderHeader: React.FC = () => {
           className="button"
           style={{ marginLeft: 12 }}
         >
-          Logout
+          {t('common.logout')}
         </button>
       </div>
     </header>

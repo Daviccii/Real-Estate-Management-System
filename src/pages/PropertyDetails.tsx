@@ -4,8 +4,9 @@ import { propertyService } from '../services/property'
 import { inquiryService } from '../services/inquiry'
 import { requestViewing } from '../services/viewing'
 import { submitApplication } from '../services/application'
-import { Property } from '../types'
+import { Property, PropertyTour } from '../types'
 import ConfirmDialog from '../components/ConfirmDialog'
+import VirtualTourViewer from '../components/VirtualTourViewer'
 import { useToast } from '../components/ToastProvider'
 import { useFavorites } from '../contexts/FavoriteContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -36,6 +37,9 @@ const PropertyDetailsPage: React.FC = () => {
   const location = useLocation()
   const [item, setItem] = useState<Property | null>(null)
   const [structuredMedia, setStructuredMedia] = useState<NonNullable<Property['media']>>([])
+  const [tours, setTours] = useState<PropertyTour[]>([])
+  const [showTourViewer, setShowTourViewer] = useState(false)
+  const [tourIndex, setTourIndex] = useState(0)
   const [loading, setLoading] = useState(false)
   const [img, setImg] = useState<string | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -111,6 +115,11 @@ const PropertyDetailsPage: React.FC = () => {
             setStructuredMedia(await propertyService.listMedia(propertyId))
           } catch {
             setStructuredMedia([])
+          }
+          try {
+            setTours(await propertyService.listTours(propertyId))
+          } catch {
+            setTours([])
           }
         }
       })
@@ -371,9 +380,25 @@ const PropertyDetailsPage: React.FC = () => {
             </div>
           </div>
 
-          {(displayGallery.length > 0 || item.showroom_url || !isComplete) && (
+          {(displayGallery.length > 0 || item.showroom_url || tours.length > 0 || !isComplete) && (
             <div className="card" style={{ marginBottom: 16 }}>
               <h2 style={{ marginTop: 0, fontSize: 18 }}>See the property</h2>
+              {tours.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+                  {tours.map((tour, index) => (
+                    <button
+                      key={tour.id}
+                      type="button"
+                      className="button"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                      onClick={() => { setTourIndex(index); setShowTourViewer(true) }}
+                    >
+                      {tour.provider === 'link' ? 'Open tour' : 'Play 360° tour'}
+                      {tour.title ? ` · ${tour.title}` : index > 0 ? ` ${index + 1}` : ''}
+                    </button>
+                  ))}
+                </div>
+              )}
               {item.showroom_url && (
                 <a href={item.showroom_url} target="_blank" rel="noreferrer" className="button" style={{ display: 'inline-block', marginBottom: 12 }}>
                   Open apartment showroom
@@ -840,6 +865,13 @@ const PropertyDetailsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      <VirtualTourViewer
+        tours={tours}
+        isOpen={showTourViewer}
+        initialIndex={tourIndex}
+        onClose={() => setShowTourViewer(false)}
+      />
 
       <ConfirmDialog
         open={showConfirm}

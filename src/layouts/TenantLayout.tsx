@@ -1,20 +1,24 @@
 import React, { useState } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
+import ThemeToggle from '../components/ThemeToggle'
+import LanguageToggle from '../components/LanguageToggle'
 import { useAuth } from '../contexts/AuthContext'
+import { useTranslation } from '../i18n/LanguageContext'
 
 const TenantSidebar: React.FC = () => {
+  const { t } = useTranslation()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
 
   const menuItems = [
-    { path: '/tenant/dashboard', label: 'Dashboard', icon: '📊' },
-    { path: '/tenant/tenancy', label: 'My Tenancy', icon: '🔑' },
-    { path: '/tenant/applications', label: 'Applications', icon: '📝' },
-    { path: '/tenant/payments', label: 'Rent Payments', icon: '💳' },
-    { path: '/tenant/maintenance', label: 'Maintenance', icon: '🔧' },
-    { path: '/tenant/messages', label: 'Messages', icon: '💬' },
-    { path: '/tenant/documents', label: 'Documents Vault', icon: '📁' },
-    { path: '/tenant/profile', label: 'ID Verification', icon: '🛡️' }
+    { path: '/tenant/dashboard', labelKey: 'navitem.dashboard', icon: '📊' },
+    { path: '/tenant/tenancy', labelKey: 'navitem.myTenancy', icon: '🔑' },
+    { path: '/tenant/applications', labelKey: 'navitem.applications', icon: '📝' },
+    { path: '/tenant/payments', labelKey: 'navitem.rentPayments', icon: '💳' },
+    { path: '/tenant/maintenance', labelKey: 'navitem.maintenance', icon: '🔧' },
+    { path: '/tenant/messages', labelKey: 'navitem.messages', icon: '💬' },
+    { path: '/tenant/documents', labelKey: 'navitem.documentsVault', icon: '📁' },
+    { path: '/tenant/profile', labelKey: 'navitem.idVerification', icon: '🛡️' }
   ]
 
   return (
@@ -22,7 +26,7 @@ const TenantSidebar: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div className="brand">
           <span style={{ color: 'var(--primary)' }}>PropNoxa</span>
-          <span style={{ color: 'var(--muted)', fontSize: 12, marginLeft: 4 }}>Tenant</span>
+          <span style={{ color: 'var(--muted)', fontSize: 12, marginLeft: 4 }}>{t('layout.role.tenant')}</span>
         </div>
         <button
           className="button muted"
@@ -34,8 +38,8 @@ const TenantSidebar: React.FC = () => {
         </button>
       </div>
 
-      <div className="tenant-workspace-label">RESIDENT SERVICES</div>
-      <nav className="nav" aria-label="Tenant navigation">
+      <div className="tenant-workspace-label">{t('layout.workspace.tenant')}</div>
+      <nav className="nav" aria-label={t('layout.aria.tenantNav')}>
         {menuItems.map((item) => (
           <Link
             key={item.path}
@@ -44,7 +48,7 @@ const TenantSidebar: React.FC = () => {
             style={{ display: 'flex', alignItems: 'center', gap: 8 }}
           >
             <span style={{ fontSize: 16 }}>{item.icon}</span>
-            {!collapsed && <span>{item.label}</span>}
+            {!collapsed && <span>{t(item.labelKey)}</span>}
           </Link>
         ))}
       </nav>
@@ -53,6 +57,7 @@ const TenantSidebar: React.FC = () => {
 }
 
 const TenantHeader: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
 
@@ -61,14 +66,16 @@ const TenantHeader: React.FC = () => {
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 700 }}>
-            Welcome back, {user?.full_name || user?.email || 'Tenant'}
+            {t('layout.greeting.welcomeBack')} {user?.full_name || user?.email || t('layout.fallback.tenant')}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)' }}>Tenant Portal & Resident Services</div>
+          <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('layout.subtitle.tenant')}</div>
         </div>
       </div>
 
       <div className="tenant-header-meta" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-        <div className="tenant-sync-status"><span /> Account in good standing</div>
+        <ThemeToggle />
+        <LanguageToggle />
+        <div className="tenant-sync-status"><span /> {t('layout.sync.tenant')}</div>
         <span
           style={{
             background: '#059669',
@@ -90,7 +97,7 @@ const TenantHeader: React.FC = () => {
           className="button"
           style={{ marginLeft: 12 }}
         >
-          Logout
+          {t('common.logout')}
         </button>
       </div>
     </header>

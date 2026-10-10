@@ -1,29 +1,35 @@
 import React, { useState } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
+import ThemeToggle from '../components/ThemeToggle'
+import LanguageToggle from '../components/LanguageToggle'
 import { useAuth } from '../contexts/AuthContext'
+import { useTranslation } from '../i18n/LanguageContext'
 
 const AdminSidebar: React.FC = () => {
+  const { t } = useTranslation()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
 
   const menuItems = [
-    { path: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
-    { path: '/admin/properties', label: 'Properties', icon: '🏠' },
-    { path: '/admin/buildings', label: 'Buildings', icon: '🏙️' },
-    { path: '/admin/units', label: 'Units', icon: '🏢' },
-    { path: '/admin/leases', label: 'Leases', icon: '📄' },
-    { path: '/admin/payments', label: 'Payments', icon: '💰' },
-    { path: '/admin/maintenance', label: 'Maintenance', icon: '🔧' },
-    { path: '/admin/verifications', label: 'Verifications', icon: '🛡️' },
-    { path: '/admin/audit-logs', label: 'Audit Trail', icon: '📋' },
-    { path: '/admin/privacy', label: 'Deletion Requests', icon: '🔐' },
-    { path: '/admin/users', label: 'Users', icon: '👥' },
-    { path: '/admin/inquiries', label: 'Inquiries', icon: '💬' },
-    { path: '/admin/agents', label: 'Agents', icon: '🤝' },
-    { path: '/admin/managers', label: 'Managers', icon: '👔' },
-    { path: '/admin/tenants', label: 'Tenants', icon: '🔑' },
-    { path: '/admin/market-insights', label: 'Market Insights', icon: '📈' },
-    { path: '/admin/settings', label: 'Settings', icon: '⚙️' },
+    { path: '/admin/dashboard', labelKey: 'navitem.dashboard', icon: '📊' },
+    { path: '/admin/analytics', labelKey: 'navitem.analytics', icon: '📉' },
+    { path: '/admin/properties', labelKey: 'navitem.properties', icon: '🏠' },
+    { path: '/admin/buildings', labelKey: 'navitem.buildings', icon: '🏙️' },
+    { path: '/admin/units', labelKey: 'navitem.units', icon: '🏢' },
+    { path: '/admin/leases', labelKey: 'navitem.leases', icon: '📄' },
+    { path: '/admin/payments', labelKey: 'navitem.payments', icon: '💰' },
+    { path: '/admin/maintenance', labelKey: 'navitem.maintenance', icon: '🔧' },
+    { path: '/admin/marketplace', labelKey: 'navitem.marketplace', icon: '🛠️' },
+    { path: '/admin/verifications', labelKey: 'navitem.verifications', icon: '🛡️' },
+    { path: '/admin/audit-logs', labelKey: 'navitem.auditTrail', icon: '📋' },
+    { path: '/admin/privacy', labelKey: 'navitem.deletionRequests', icon: '🔐' },
+    { path: '/admin/users', labelKey: 'navitem.users', icon: '👥' },
+    { path: '/admin/inquiries', labelKey: 'navitem.inquiries', icon: '💬' },
+    { path: '/admin/agents', labelKey: 'navitem.agents', icon: '🤝' },
+    { path: '/admin/managers', labelKey: 'navitem.managers', icon: '👔' },
+    { path: '/admin/tenants', labelKey: 'navitem.tenants', icon: '🔑' },
+    { path: '/admin/market-insights', labelKey: 'navitem.marketInsights', icon: '📈' },
+    { path: '/admin/settings', labelKey: 'navitem.settings', icon: '⚙️' },
   ]
 
   return (
@@ -31,7 +37,7 @@ const AdminSidebar: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div className="brand">
           <span style={{ color: 'var(--primary)' }}>PropNoxa</span>
-          <span style={{ color: 'var(--muted)', fontSize: 12, marginLeft: 4 }}>Admin</span>
+          <span style={{ color: 'var(--muted)', fontSize: 12, marginLeft: 4 }}>{t('layout.role.admin')}</span>
         </div>
         <button 
           className="button muted" 
@@ -43,8 +49,8 @@ const AdminSidebar: React.FC = () => {
         </button>
       </div>
       
-      <div className="admin-workspace-label">CONTROL CENTER</div>
-      <nav className="nav" aria-label="Admin navigation">
+      <div className="admin-workspace-label">{t('layout.workspace.admin')}</div>
+      <nav className="nav" aria-label={t('layout.aria.adminNav')}>
         {menuItems.map((item) => (
           <Link 
             key={item.path} 
@@ -53,7 +59,7 @@ const AdminSidebar: React.FC = () => {
             style={{ display: 'flex', alignItems: 'center', gap: 8 }}
           >
             <span style={{ fontSize: 16 }}>{item.icon}</span>
-            {!collapsed && <span>{item.label}</span>}
+            {!collapsed && <span>{t(item.labelKey)}</span>}
           </Link>
         ))}
       </nav>
@@ -62,6 +68,7 @@ const AdminSidebar: React.FC = () => {
 }
 
 const AdminHeader: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
 
@@ -75,16 +82,18 @@ const AdminHeader: React.FC = () => {
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 700 }}>
-            Good morning, {user?.full_name || user?.email || 'Admin'}
+            {t('layout.greeting.morning')} {user?.full_name || user?.email || t('layout.fallback.admin')}
           </div>
           <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-            Platform Administration
+            {t('layout.subtitle.admin')}
           </div>
         </div>
       </div>
       
       <div className="admin-header-meta" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-        <div className="admin-live-status"><span /> Systems operational</div>
+        <ThemeToggle />
+        <LanguageToggle />
+        <div className="admin-live-status"><span /> {t('layout.sync.admin')}</div>
         <div className="admin-badge" style={{ 
           background: 'var(--primary)', 
           color: 'white', 
@@ -98,7 +107,7 @@ const AdminHeader: React.FC = () => {
         
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontWeight: 700, fontSize: 14 }}>
-            {user?.full_name || user?.email || 'Admin'}
+            {user?.full_name || user?.email || t('layout.fallback.admin')}
           </div>
           <div style={{ fontSize: 12, color: 'var(--muted)' }}>
             {user?.role || 'admin'}
@@ -110,7 +119,7 @@ const AdminHeader: React.FC = () => {
           className="button"
           style={{ marginLeft: 12 }}
         >
-          Logout
+          {t('common.logout')}
         </button>
       </div>
     </header>

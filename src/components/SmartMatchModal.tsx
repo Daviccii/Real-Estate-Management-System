@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { matchProperties } from '../services/property'
 import { PropertyMatchResult, PropertyMatchCriteria } from '../types'
+import VoiceSearchButton from './VoiceSearchButton'
+import { parseVoiceQuery } from '../utils/voiceQueryParser'
 
 interface SmartMatchModalProps {
   isOpen: boolean
@@ -24,7 +26,32 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({ isOpen, onClos
   const [requireSecurity, setRequireSecurity] = useState(true)
   const [requireBalcony, setRequireBalcony] = useState(false)
 
+  // Voice assistant state
+  const [voiceHeard, setVoiceHeard] = useState('')
+  const [voiceChips, setVoiceChips] = useState<string[]>([])
+  const [voiceError, setVoiceError] = useState<string | null>(null)
+  const [voiceAmenities, setVoiceAmenities] = useState<string[]>([])
+
   if (!isOpen) return null
+
+  const handleVoiceResult = (transcript: string) => {
+    const parsed = parseVoiceQuery(transcript)
+    setVoiceHeard(parsed.heard)
+    setVoiceChips(parsed.understood)
+    setVoiceError(null)
+
+    const c = parsed.criteria
+    if (c.purpose) setPurpose(c.purpose)
+    if (c.max_budget != null) setMaxBudget(String(c.max_budget))
+    if (c.preferred_city) setPreferredCity(c.preferred_city)
+    if (c.min_bedrooms != null) setMinBedrooms(Math.min(4, Math.max(1, c.min_bedrooms)))
+    if (c.property_type) setPropertyType(c.property_type)
+    if (c.furnishing) setFurnishing(c.furnishing)
+    if (c.require_parking) setRequireParking(true)
+    if (c.require_security) setRequireSecurity(true)
+    if (c.require_balcony) setRequireBalcony(true)
+    if (c.amenities?.length) setVoiceAmenities(c.amenities)
+  }
 
   const handleMatch = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,7 +66,8 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({ isOpen, onClos
         furnishing: furnishing !== 'any' ? furnishing : undefined,
         require_parking: requireParking,
         require_security: requireSecurity,
-        require_balcony: requireBalcony
+        require_balcony: requireBalcony,
+        amenities: voiceAmenities.length ? voiceAmenities : undefined
       }
       const data = await matchProperties(criteria)
       setResults(data)
@@ -77,10 +105,43 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({ isOpen, onClos
               Answer a few lifestyle and budget questions. Our recommendation engine will rank all active ecosystem listings based on proximity, budget compatibility, and amenity matches.
             </p>
 
+            <div className="bg-purple-50 border border-purple-100 rounded-2xl p-3 space-y-2">
+              <div className="flex items-center gap-3">
+                <VoiceSearchButton onResult={handleVoiceResult} onError={setVoiceError} label="Describe your ideal property by voice" />
+                <p className="text-xs text-slate-600 flex-1">
+                  {voiceHeard ? (
+                    <>
+                      <span className="font-semibold text-slate-700">Heard:</span> &ldquo;{voiceHeard}&rdquo; — review the details below, then calculate.
+                    </>
+                  ) : (
+                    'Tap the mic and describe what you need — e.g. “two bedroom apartment in Kilimani under 80k with parking”.'
+                  )}
+                </p>
+              </div>
+              {voiceChips.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {voiceChips.map((chip) => (
+                    <span
+                      key={chip}
+                      className="px-2 py-0.5 rounded-full bg-white border border-purple-200 text-[10px] font-semibold text-purple-700"
+                    >
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {voiceError && (
+                <p role="alert" className="text-xs text-red-600">
+                  {voiceError}
+                </p>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Goal</label>
+                <label htmlFor="smart-match-purpose" className="block text-xs font-semibold text-slate-700 mb-1">Goal</label>
                 <select
+                  id="smart-match-purpose"
                   value={purpose}
                   onChange={(e) => setPurpose(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -91,10 +152,11 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({ isOpen, onClos
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label htmlFor="smart-match-budget" className="block text-xs font-semibold text-slate-700 mb-1">
                   Maximum Budget (KSh {purpose === 'rent' ? '/ mo' : ''})
                 </label>
                 <input
+                  id="smart-match-budget"
                   type="number"
                   required
                   value={maxBudget}
@@ -105,8 +167,9 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({ isOpen, onClos
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Preferred City / Locality</label>
+                <label htmlFor="smart-match-city" className="block text-xs font-semibold text-slate-700 mb-1">Preferred City / Locality</label>
                 <input
+                  id="smart-match-city"
                   type="text"
                   value={preferredCity}
                   onChange={(e) => setPreferredCity(e.target.value)}
@@ -116,8 +179,9 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({ isOpen, onClos
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Minimum Bedrooms</label>
+                <label htmlFor="smart-match-bedrooms" className="block text-xs font-semibold text-slate-700 mb-1">Minimum Bedrooms</label>
                 <select
+                  id="smart-match-bedrooms"
                   value={minBedrooms}
                   onChange={(e) => setMinBedrooms(Number(e.target.value))}
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -130,8 +194,9 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({ isOpen, onClos
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Property Type</label>
+                <label htmlFor="smart-match-type" className="block text-xs font-semibold text-slate-700 mb-1">Property Type</label>
                 <select
+                  id="smart-match-type"
                   value={propertyType}
                   onChange={(e) => setPropertyType(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -143,8 +208,9 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({ isOpen, onClos
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Furnishing Preference</label>
+                <label htmlFor="smart-match-furnishing" className="block text-xs font-semibold text-slate-700 mb-1">Furnishing Preference</label>
                 <select
+                  id="smart-match-furnishing"
                   value={furnishing}
                   onChange={(e) => setFurnishing(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -232,6 +298,10 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({ isOpen, onClos
                 {results.map((res) => {
                   const p = res.property
                   const score = Math.round(res.match_score)
+                  const topFactors = Object.entries(res.score_breakdown || {})
+                    .filter(([, pts]) => pts > 0)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 4)
                   return (
                     <div
                       key={p.id}
@@ -247,7 +317,7 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({ isOpen, onClos
                         </div>
 
                         <div className="space-y-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span
                               className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
                                 score >= 85
@@ -259,11 +329,27 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({ isOpen, onClos
                             >
                               {score}% Match
                             </span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-slate-200 text-slate-700">
+                              {res.match_label}
+                            </span>
                             <span className="text-xs text-slate-400">• {p.bedrooms ?? 0} Beds • {p.bathrooms ?? 0} Baths</span>
                           </div>
 
                           <h4 className="font-bold text-sm text-slate-800">{p.name}</h4>
                           <p className="text-xs text-slate-500">{p.address}, {p.city}</p>
+
+                          {topFactors.length > 0 && (
+                            <div className="flex flex-wrap gap-1 pt-1">
+                              {topFactors.map(([factor, pts]) => (
+                                <span
+                                  key={factor}
+                                  className="px-2 py-0.5 rounded bg-purple-50 text-[10px] font-semibold text-purple-700 border border-purple-100"
+                                >
+                                  {factor} +{pts}
+                                </span>
+                              ))}
+                            </div>
+                          )}
 
                           <div className="flex flex-wrap gap-1 pt-1">
                             {res.match_reasons.map((reason, idx) => (

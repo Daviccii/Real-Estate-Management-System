@@ -1,21 +1,27 @@
 import React, { useState } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
+import ThemeToggle from '../components/ThemeToggle'
+import LanguageToggle from '../components/LanguageToggle'
 import { useAuth } from '../contexts/AuthContext'
+import { useTranslation } from '../i18n/LanguageContext'
 
 const OwnerSidebar: React.FC = () => {
+  const { t } = useTranslation()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
 
   const menuItems = [
-    { path: '/owner/dashboard', label: 'Dashboard', icon: '📊' },
-    { path: '/owner/properties', label: 'Portfolio Properties', icon: '🏠' },
-    { path: '/owner/units', label: 'Unit Directory', icon: '🏢' },
-    { path: '/owner/tenants', label: 'Active Tenants', icon: '👥' },
-    { path: '/owner/leases', label: 'Lease Agreements', icon: '📄' },
-    { path: '/owner/financials', label: 'Financial Yield & P&L', icon: '💰' },
-    { path: '/owner/applications', label: 'Tenant Screening', icon: '📝' },
-    { path: '/owner/maintenance', label: 'Repair Approvals', icon: '🔧' },
-    { path: '/owner/settings', label: 'Ownership & Deeds', icon: '⚙️' }
+    { path: '/owner/dashboard', labelKey: 'navitem.dashboard', icon: '📊' },
+    { path: '/owner/analytics', labelKey: 'navitem.performanceAnalytics', icon: '📉' },
+    { path: '/owner/properties', labelKey: 'navitem.portfolioProperties', icon: '🏠' },
+    { path: '/owner/units', labelKey: 'navitem.unitDirectory', icon: '🏢' },
+    { path: '/owner/tenants', labelKey: 'navitem.activeTenants', icon: '👥' },
+    { path: '/owner/leases', labelKey: 'navitem.leaseAgreements', icon: '📄' },
+    { path: '/owner/financials', labelKey: 'navitem.financialYield', icon: '💰' },
+    { path: '/owner/applications', labelKey: 'navitem.tenantScreening', icon: '📝' },
+    { path: '/owner/maintenance', labelKey: 'navitem.repairApprovals', icon: '🔧' },
+    { path: '/owner/marketplace', labelKey: 'navitem.serviceMarketplace', icon: '🛠️' },
+    { path: '/owner/settings', labelKey: 'navitem.ownershipDeeds', icon: '⚙️' }
   ]
 
   return (
@@ -23,7 +29,7 @@ const OwnerSidebar: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div className="brand">
           <span style={{ color: 'var(--primary)' }}>PropNoxa</span>
-          <span style={{ color: 'var(--muted)', fontSize: 12, marginLeft: 4 }}>Owner</span>
+          <span style={{ color: 'var(--muted)', fontSize: 12, marginLeft: 4 }}>{t('layout.role.owner')}</span>
         </div>
         <button
           className="button muted"
@@ -35,8 +41,8 @@ const OwnerSidebar: React.FC = () => {
         </button>
       </div>
 
-      <div className="owner-workspace-label">ASSET WORKSPACE</div>
-      <nav className="nav" aria-label="Owner navigation">
+      <div className="owner-workspace-label">{t('layout.workspace.owner')}</div>
+      <nav className="nav" aria-label={t('layout.aria.ownerNav')}>
         {menuItems.map((item) => (
           <Link
             key={item.path}
@@ -45,7 +51,7 @@ const OwnerSidebar: React.FC = () => {
             style={{ display: 'flex', alignItems: 'center', gap: 8 }}
           >
             <span style={{ fontSize: 16 }}>{item.icon}</span>
-            {!collapsed && <span>{item.label}</span>}
+            {!collapsed && <span>{t(item.labelKey)}</span>}
           </Link>
         ))}
       </nav>
@@ -54,6 +60,7 @@ const OwnerSidebar: React.FC = () => {
 }
 
 const OwnerHeader: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
 
@@ -62,14 +69,16 @@ const OwnerHeader: React.FC = () => {
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 700 }}>
-            Good day, {user?.full_name || user?.email || 'Property Owner'}
+            {t('layout.greeting.day')} {user?.full_name || user?.email || t('layout.fallback.owner')}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)' }}>Asset Portfolio & Landlord Management</div>
+          <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('layout.subtitle.owner')}</div>
         </div>
       </div>
 
       <div className="owner-header-meta" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-        <div className="owner-sync-status"><span /> Portfolio synced</div>
+        <ThemeToggle />
+        <LanguageToggle />
+        <div className="owner-sync-status"><span /> {t('layout.sync.owner')}</div>
         <span
           style={{
             background: '#4f46e5',
@@ -91,7 +100,7 @@ const OwnerHeader: React.FC = () => {
           className="button"
           style={{ marginLeft: 12 }}
         >
-          Logout
+          {t('common.logout')}
         </button>
       </div>
     </header>

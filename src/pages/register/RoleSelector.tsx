@@ -1,77 +1,63 @@
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from '../../i18n/LanguageContext'
 
 interface RoleOption {
   id: string
-  title: string
-  badge: string
-  description: string
+  titleKey: string
+  badgeKey: string
+  descriptionKey: string
   path: string
   icon: string
-  highlights: string[]
+  highlightKeys: string[]
   color: string
 }
 
 const ROLES: RoleOption[] = [
   {
     id: 'tenant',
-    title: 'Tenant / Renter',
-    badge: 'Fast & Free',
-    description: 'Find your dream home, schedule verified in-person viewings, apply with Smart Match, and pay rent seamlessly.',
+    titleKey: 'register.tenant.title',
+    badgeKey: 'register.tenant.badge',
+    descriptionKey: 'register.tenant.description',
     path: '/register/tenant',
     icon: '🏠',
-    highlights: [
-      'Smart Match algorithm for rental budget & location',
-      'Instant viewing bookings with calendar sync',
-      'Digital lease signing & automated rent tracking'
-    ],
+    highlightKeys: ['register.tenant.h1', 'register.tenant.h2', 'register.tenant.h3'],
     color: '#2563eb'
   },
   {
     id: 'owner',
-    title: 'Property Owner / Landlord',
-    badge: 'Full Control',
-    description: 'List residential & commercial units, screen tenant applications, automate rent payouts, and manage multi-unit buildings.',
+    titleKey: 'register.owner.title',
+    badgeKey: 'register.owner.badge',
+    descriptionKey: 'register.owner.description',
     path: '/register/owner',
     icon: '🏢',
-    highlights: [
-      'Building & unit portfolio management',
-      'Tenant screening & one-click lease generation',
-      'Real-time rent collection & financial insights'
-    ],
+    highlightKeys: ['register.owner.h1', 'register.owner.h2', 'register.owner.h3'],
     color: '#059669'
   },
   {
     id: 'agent',
-    title: 'Real Estate Agent',
-    badge: 'Grow Deals',
-    description: 'Manage verified client listings, capture leads with smart CRM pipelines, coordinate showings, and close deals faster.',
+    titleKey: 'register.agent.title',
+    badgeKey: 'register.agent.badge',
+    descriptionKey: 'register.agent.description',
     path: '/register/agent',
     icon: '🤝',
-    highlights: [
-      'Lead capture & automated follow-up CRM',
-      'Dedicated agent profile & verified badge',
-      'Commission tracking & client deal pipeline'
-    ],
+    highlightKeys: ['register.agent.h1', 'register.agent.h2', 'register.agent.h3'],
     color: '#7c3aed'
   },
   {
     id: 'provider',
-    title: 'Service Contractor / Trade Partner',
-    badge: 'Get Jobs',
-    description: 'Receive assigned maintenance work orders, dispatch field technicians, submit quotes, and receive direct payments.',
+    titleKey: 'register.provider.title',
+    badgeKey: 'register.provider.badge',
+    descriptionKey: 'register.provider.description',
     path: '/register/provider',
     icon: '🔧',
-    highlights: [
-      'Direct work order dispatches from owners/tenants',
-      'Emergency maintenance requests & scheduling',
-      'Service catalog & verified trade credentials'
-    ],
+    highlightKeys: ['register.provider.h1', 'register.provider.h2', 'register.provider.h3'],
     color: '#d97706'
   }
 ]
 
 export const RoleSelector: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   return (
@@ -91,10 +77,10 @@ export const RoleSelector: React.FC = () => {
             </span>
           </Link>
           <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent)', margin: '8px 0' }}>
-            Join the PropNoxa Ecosystem
+            {t('register.title')}
           </h1>
           <p style={{ color: 'var(--muted)', fontSize: '1.05rem', maxWidth: '600px', margin: '0 auto' }}>
-            Choose the account type that best matches your goals to access dedicated tools and specialized onboarding.
+            {t('register.subtitle')}
           </p>
         </div>
 
@@ -140,25 +126,25 @@ export const RoleSelector: React.FC = () => {
                     background: `${role.color}15`,
                     color: role.color
                   }}>
-                    {role.badge}
+                    {t(role.badgeKey)}
                   </span>
                 </div>
 
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--accent)', marginBottom: '8px' }}>
-                  {role.title}
+                  {t(role.titleKey)}
                 </h2>
                 <p style={{ color: 'var(--muted)', fontSize: '0.9rem', lineHeight: 1.5, marginBottom: '20px' }}>
-                  {role.description}
+                  {t(role.descriptionKey)}
                 </p>
 
                 <div style={{ borderTop: '1px solid var(--line)', paddingTop: '16px', marginBottom: '20px' }}>
                   <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    What's Included:
+                    {t('register.included')}
                   </div>
                   <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {role.highlights.map((h, i) => (
-                      <li key={i} style={{ fontSize: '0.85rem', color: '#334155' }}>
-                        {h}
+                    {role.highlightKeys.map((highlightKey) => (
+                      <li key={highlightKey} style={{ fontSize: '0.85rem', color: '#334155' }}>
+                        {t(highlightKey)}
                       </li>
                     ))}
                   </ul>
@@ -183,16 +169,16 @@ export const RoleSelector: React.FC = () => {
                   transition: 'opacity 0.2s ease'
                 }}
               >
-                Register as {role.title.split('/')[0].trim()} &rarr;
+                {t('register.asRole', { role: t(role.titleKey).split('/')[0].trim() })} &rarr;
               </button>
             </div>
           ))}
         </div>
 
         <div style={{ textAlign: 'center', color: 'var(--muted)', fontSize: '0.95rem' }}>
-          Already have an account?{' '}
+          {t('register.haveAccount')}{' '}
           <Link to="/login" style={{ color: 'var(--accent-2)', fontWeight: 700, textDecoration: 'none' }}>
-            Sign In here
+            {t('register.signInHere')}
           </Link>
         </div>
       </div>
