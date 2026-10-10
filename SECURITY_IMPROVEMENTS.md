@@ -1328,6 +1328,9 @@ For questions or issues:
 
 ## Changelog
 
+### October 11, 2026
+- Added `DEPLOYMENT.md` — deployment runbook mapping the launch checklist to the repo state (CI/CD gates, backup/PITR tooling, health + metrics endpoints, secret inventory, compose reference stack), the recommended CDN → ALB → API → RDS/Redis architecture with per-component gaps, a rollback procedure (image swap, migration downgrade, restore + audit-chain re-verify), and an incident-response quick guide; outstanding manual actions tracked (admin password rotation, secrets manager, hosting choice, payment gateway, SMTP, upload volumes, alerting, pen/load testing)
+
 ### October 10, 2026
 - Implemented tamper-evident audit chain (#37): `audit_logs` entries now carry HMAC-SHA256 `prev_hash`/`entry_hash` stamped by an insert hook (every writer chained, no bypass), with a single-row tip table that keeps batched-flush inserts linear (regression-tested), naive-UTC `created_at` normalization for cross-DB hash stability, retention-prune `AUDIT_CHAIN_ANCHOR` vouchers covering prefix/middle/tail/full prunes (edit-after-prune still detected, anchor self-expiry proven safe), admin `GET /api/v1/audit-logs/chain/verify` endpoint + `scripts/verify_audit_chain.py` CLI, migration `0036_audit_chain` backfilling all existing rows (dev DB migrated; 12 entries verified `true` with a live insert chaining onto the backfilled tip; backup `backend/database.db.bak-20261010-pre-0036`); 22 backend tests (264 total); documented limitation — withstands DB-only tampering, not an attacker holding both DB write access and the HMAC key
 - Implemented PWA mobile experience (#33): zero-dependency installable PWA — web manifest (standalone PropNoxa identity, icon set incl. maskable, `/properties` + `/dashboard` shortcuts), hand-written service worker (network-first shell with `offline.html` fallback, stale-while-revalidate assets, `/api/*` never cached), build-time injection that precaches the full 22-file dist under a content-hashed cache version and evicts prior deployments on activate, prod-only registration, and an EN/SW install banner with persisted dismissal; browser E2E exposed and fixed two real SW bugs — a fire-and-forget `cache.put` killed on worker shutdown and cached assets failing to match offline because Vite's `Vary: Origin` header rejects Origin-less SW cache lookups (fixed with `ignoreVary` + full precache) — with the preview server killed, the app now boots fully offline (hero + nav + all 9 assets, was blank with `net::ERR_FAILED`); 15 frontend tests (263 total), typecheck/build clean
@@ -1374,5 +1377,5 @@ For questions or issues:
 
 ---
 
-**Last Updated:** October 10, 2026
+**Last Updated:** October 11, 2026
 **Version:** 1.1.0
