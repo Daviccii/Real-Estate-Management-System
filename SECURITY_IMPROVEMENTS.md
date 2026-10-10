@@ -479,18 +479,18 @@ python scripts/backup_database.py --once
 - **Backend job:** Python 3.14, `pip install -r requirements.txt`, `pytest tests -q` (in-memory SQLite via `tests/conftest.py` — no services needed), **bandit at medium+ severity (blocking)**, **pip-audit (advisory)** until requirements are fully pinned.
 - **Frontend audit job:** `npm audit --omit=dev --audit-level=high` is **blocking** (production dependencies, currently green); the full dev-inclusive audit runs as **advisory** because the remaining advisories sit in the Vitest/esbuild toolchain and only clear with breaking major upgrades.
 - **Docker job:** builds the backend image (no push — no registry configured yet).
-- The backend and Docker jobs are gated behind a "backend sources tracked" check and skip with a `::notice::` until the gitlink is consolidated (below), so the pipeline stays green either way.
+- The backend and Docker jobs are gated behind a "backend sources tracked" check (`backend/requirements.txt` present); since the 2026-10-10 consolidation (below) that is always the case, and the gate now only acts as a safety net.
 
 **Deploy workflow (`workflow_dispatch`):** re-runs the full CI via `workflow_call`, then promotes to the chosen GitHub Environment (`staging` or `production`). Protect `production` with required reviewers in *Repo settings → Environments* so a dispatch cannot ship without human approval. The deploy steps themselves are placeholders for the hosting command.
 
-**One-time required step for backend CI (run locally, then push):**
-The root repository tracks `backend/` as a bare gitlink (nested `.git`, no `.gitmodules`), so GitHub sees **no backend files at all** — backend tests, bandit, and Docker builds cannot run until the nested repository is consolidated into the root repo:
+**Backend consolidation (done 2026-10-10):**
+The root repository previously tracked `backend/` as a bare gitlink (nested `.git`, no `.gitmodules`), so GitHub saw **no backend files at all** and backend tests, bandit, and Docker builds could not run. This was consolidated by running:
 ```bash
 scripts/consolidate-backend-git.sh   # renames backend/.git aside (history preserved), stages backend/ as normal files, aborts if backend/.env would not stay ignored
 git commit -m "Consolidate backend sources into root repository"
 git push
 ```
-Exact rollback steps are printed by the script (restore the gitlink + rename `backend/.git.pre-consolidation` back).
+The nested repository (history + uncommitted state at the time) is preserved as `backend/.git.pre-consolidation`; exact rollback steps are printed by the script.
 
 ### 9. ✅ Frontend Tests (COMPLETED)
 
@@ -993,7 +993,7 @@ Priority 3 item #29 — audit of the hand-rolled utility CSS against the Tailwin
 3. **Password Reset:** Implemented (token-based, history-checked). Email delivery needs the production provider above.
 4. **File Upload:** Implemented with local storage; virus scanning and S3/signed URLs pending.
 5. **Monitoring:** Basic metrics/health/logging in place; Sentry/APM/alerting integrations pending.
-6. **Backend repo consolidation pending:** `backend/` is still a nested git repository tracked as a gitlink, so GitHub sees no backend files. Backend CI, pip-audit, bandit, and Docker image jobs skip automatically until `scripts/consolidate-backend-git.sh` is run and the result is committed and pushed.
+6. ~~Backend repo consolidation pending~~ — **resolved 2026-10-10:** backend sources are tracked as ordinary files in the root repo, so backend CI (pytest, bandit, pip-audit) and the Docker image build now run. The nested repo remains available at `backend/.git.pre-consolidation` for rollback.
 7. **Dependency advisories:** Production `npm audit` is green at high+ severity. Remaining advisories are dev-tooling only (Vitest 5 / esbuild / tinypool chain) plus react-router, whose fix requires the breaking react-router 7 major upgrade. `pip-audit` runs in advisory mode until `requirements.txt` is fully pinned.
 8. **Deploy steps are placeholders:** The promotion workflow verifies the path end to end (CI re-run + environment gates), but the actual deploy commands await a hosting decision. The Docker image build job has not been executed yet — no Docker daemon was available on the dev machine; first CI run on GitHub will validate it.
 9. **Postgres-only migration in chain:** A pre-existing migration uses `ALTER TABLE leases ALTER COLUMN ... TYPE`, which SQLite cannot execute, so the full Alembic chain cannot be replayed on SQLite dev databases. New migrations are validated by stamping the previous head first (see GDPR section).
