@@ -43,49 +43,41 @@ const ManagerDashboard: React.FC = () => {
           title="Managed Properties"
           value={dashboard.properties.total}
           icon="🏠"
-          color="blue"
         />
         <StatCard
           title="Occupied Units"
           value={dashboard.properties.occupied}
           icon="👤"
-          color="green"
         />
         <StatCard
           title="Vacant Units"
           value={dashboard.properties.vacant}
           icon="🏢"
-          color="orange"
         />
         <StatCard
           title="Active Leases"
           value={dashboard.leases.active}
           icon="📄"
-          color="blue"
         />
         <StatCard
           title="Total Tenants"
           value={dashboard.tenants.total}
           icon="👥"
-          color="purple"
         />
         <StatCard
           title="Pending Payments"
           value={dashboard.payments.pending}
           icon="⏰"
-          color="red"
         />
         <StatCard
           title="Open Maintenance"
           value={dashboard.maintenance.open}
           icon="🔧"
-          color="yellow"
         />
         <StatCard
           title="Pending Inquiries"
           value={dashboard.inquiries.pending}
           icon="💬"
-          color="cyan"
         />
       </div>
 

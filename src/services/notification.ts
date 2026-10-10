@@ -18,6 +18,10 @@ export interface UnreadCountResponse {
   unread_count: number
 }
 
+export interface EmailPreference {
+  notifications_enabled: boolean
+}
+
 export const notificationService = {
   // Get all notifications
   async getNotifications(params?: { 
@@ -91,7 +95,19 @@ export const notificationService = {
     return api.request(`/notifications/${notificationId}`, {
       method: 'DELETE'
     })
+  },
+
+  // Notification-email preference (security emails are never gated by this)
+  async getEmailPreference(): Promise<EmailPreference> {
+    return api.request('/notifications/email-preferences')
+  },
+
+  async updateEmailPreference(notificationsEnabled: boolean): Promise<EmailPreference> {
+    return api.request('/notifications/email-preferences', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notifications_enabled: notificationsEnabled })
+    })
   }
 }
 
-export type { Notification, UnreadCountResponse }

@@ -1,5 +1,6 @@
 import React from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import MfaPanel from '../../components/MfaPanel'
 
 const ManagerSettings: React.FC = () => {
   const { user } = useAuth()
@@ -66,10 +67,9 @@ const ManagerSettings: React.FC = () => {
         <div className="setting-card">
           <h3>Account Security</h3>
           <button className="button" disabled>Change Password</button>
-          <button className="button secondary" style={{ marginLeft: 8 }} disabled>
-            Enable Two-Factor Authentication
-          </button>
         </div>
+
+        <MfaPanel />
       </div>
 
       <div style={{ marginTop: 24, padding: 16, backgroundColor: '#f5f5f5', borderRadius: 8 }}>

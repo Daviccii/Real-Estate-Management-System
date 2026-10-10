@@ -103,9 +103,16 @@ const MaintenanceManagement: React.FC = () => {
 
   const handleAssign = async () => {
     if (!selectedRequest) return
-    
+    if (!assignForm.assigned_manager_id) {
+      addToast({ message: 'Select a manager to assign', type: 'error' })
+      return
+    }
+
     try {
-      await maintenanceService.assign(selectedRequest.id, assignForm)
+      await maintenanceService.assign(selectedRequest.id, {
+        assigned_manager_id: Number(assignForm.assigned_manager_id),
+        notes: assignForm.notes,
+      })
       addToast({ message: 'Maintenance request assigned successfully', type: 'success' })
       setShowAssignModal(false)
       setSelectedRequest(null)

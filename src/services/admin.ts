@@ -1,5 +1,19 @@
 import { api } from './api'
 
+interface PlatformSettings {
+  id: number
+  enable_user_registration: boolean
+  require_email_verification: boolean
+  enable_property_moderation: boolean
+  session_timeout_minutes: number
+  password_min_length: number
+  notify_new_users: boolean
+  notify_new_inquiries: boolean
+  notify_property_updates: boolean
+  updated_at: string
+  updated_by_id?: number | null
+}
+
 interface DashboardStats {
   users: {
     total: number
@@ -164,7 +178,19 @@ export const adminService = {
 
   async getMarketInsights(): Promise<MarketInsights> {
     return api.request('/admin/market-insights')
+  },
+
+  async getSettings(): Promise<PlatformSettings> {
+    return api.request('/admin/settings')
+  },
+
+  async updateSettings(change: Partial<PlatformSettings>): Promise<PlatformSettings> {
+    return api.request('/admin/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(change)
+    })
   }
 }
 
-export type { AdminUser, AdminProperty, AdminInquiry, MarketInsights, DashboardStats }
+export type { AdminUser, AdminProperty, AdminInquiry, MarketInsights, DashboardStats, PlatformSettings }

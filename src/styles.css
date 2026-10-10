@@ -277,6 +277,9 @@ button:focus, a:focus, input:focus, select:focus, textarea:focus{
 .lg\:grid-cols-5{grid-template-columns:repeat(5,minmax(0,1fr))}
 .sm\:flex-row{flex-direction:row}.md\:flex-row{flex-direction:row}.md\:items-center{align-items:center}
 .md\:justify-between{justify-content:space-between}.md\:block{display:block}.md\:hidden{display:none}
+.sm\:grid-cols-3,.md\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.md\:col-span-2{grid-column:span 2/span 2}
+.sm\:items-center{align-items:center}.sm\:items-end{align-items:flex-end}.sm\:flex-col{flex-direction:column}
+.md\:self-auto{align-self:auto}.sm\:p-8{padding:2rem}
 .w-12{width:3rem}.h-12{height:3rem}.object-cover{object-fit:cover}.text-\[10px\]{font-size:10px}.text-\[11px\]{font-size:11px}
 .text-\[10px\]{font-size:10px}.text-\[11px\]{font-size:11px}
 .block{display:block}.inline-block{display:inline-block}.leading-none{line-height:1}.cursor-pointer{cursor:pointer}
@@ -365,7 +368,7 @@ button:focus, a:focus, input:focus, select:focus, textarea:focus{
 .owner-content,.admin-content,.agent-content,.provider-content,.tenant-content,.manager-content{background:radial-gradient(circle at 100% 0,rgba(99,102,241,.06),transparent 30%)}
 .owner-content>*,.admin-content>*,.agent-content>*,.provider-content>*,.tenant-content>*,.manager-content>*{animation:portal-enter .35s ease both}
 @keyframes portal-enter{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
-@media(max-width:900px){.sm\:grid-cols-2,.md\:grid-cols-2,.lg\:grid-cols-2,.lg\:grid-cols-4,.lg\:grid-cols-5{grid-template-columns:1fr}.sm\:flex-row,.md\:flex-row{flex-direction:column}.md\:hidden{display:block}.md\:block{display:none}}
+@media(max-width:900px){.sm\:grid-cols-2,.md\:grid-cols-2,.lg\:grid-cols-2,.lg\:grid-cols-4,.lg\:grid-cols-5,.sm\:grid-cols-3,.md\:grid-cols-3{grid-template-columns:1fr}.md\:col-span-2{grid-column:auto}.sm\:flex-row,.md\:flex-row{flex-direction:column}.sm\:flex-col{flex-direction:row}.sm\:items-center{align-items:stretch}.sm\:items-end{align-items:center}.md\:self-auto{align-self:flex-start}.sm\:p-8{padding:1.5rem}.md\:hidden{display:block}.md\:block{display:none}}
 @media(max-width:640px){.admin-page-heading{align-items:flex-start;flex-direction:column}.admin-header-meta{margin-left:0}.admin-live-status{display:none}}
 
 .property-card{display:flex;flex-direction:column;overflow:hidden;border-radius:24px;box-shadow:var(--card-shadow);background:var(--surface)}

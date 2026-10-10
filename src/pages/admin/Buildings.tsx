@@ -174,7 +174,7 @@ export const AdminBuildings: React.FC = () => {
                 >
                   {properties.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.title} ({p.city || 'N/A'})
+                      {p.name} ({p.city || 'N/A'})
                     </option>
                   ))}
                 </select>

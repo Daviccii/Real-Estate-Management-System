@@ -45,7 +45,7 @@ const PublicFooter: React.FC = ()=>{
           <section>
             <h4>Legal</h4>
             <ul>
-              <li><span className="footer-placeholder">Privacy (coming soon)</span></li>
+              <li><Link to="/privacy">Privacy</Link></li>
               <li><span className="footer-placeholder">Terms (coming soon)</span></li>
             </ul>
           </section>

@@ -42,10 +42,8 @@ export const PropertyComparisonModal: React.FC<PropertyComparisonModalProps> = (
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-x-auto pb-2">
             {properties.map((p) => {
-              const amenitiesList = Array.isArray(p.amenities)
-                ? p.amenities
-                : typeof p.amenities === 'string'
-                ? (p.amenities as string).split(',').map((a) => a.trim()).filter(Boolean)
+              const amenitiesList = typeof p.amenities === 'string'
+                ? p.amenities.split(',').map((a: string) => a.trim()).filter(Boolean)
                 : []
 
               return (
@@ -66,7 +64,7 @@ export const PropertyComparisonModal: React.FC<PropertyComparisonModalProps> = (
                   <div className="space-y-3">
                     <div className="h-32 rounded-xl bg-slate-200 overflow-hidden relative">
                       {p.image_url ? (
-                        <img src={p.image_url} alt={p.title} className="w-full h-full object-cover" />
+                        <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-400 text-2xl">
                           🏠
@@ -78,7 +76,7 @@ export const PropertyComparisonModal: React.FC<PropertyComparisonModalProps> = (
                     </div>
 
                     <div>
-                      <h3 className="font-bold text-sm text-slate-800 line-clamp-1">{p.title}</h3>
+                      <h3 className="font-bold text-sm text-slate-800 line-clamp-1">{p.name}</h3>
                       <p className="text-xs text-slate-500 line-clamp-1">{p.address}, {p.city}</p>
                     </div>
 
@@ -101,7 +99,7 @@ export const PropertyComparisonModal: React.FC<PropertyComparisonModalProps> = (
                       </div>
                       <div>
                         <span className="text-slate-400 block text-[10px]">Floor Area</span>
-                        <span className="font-bold text-slate-800">{p.area_sqft ? `${p.area_sqft} sqft` : '—'}</span>
+                        <span className="font-bold text-slate-800">{p.area ? `${p.area} sqft` : '—'}</span>
                       </div>
                       <div>
                         <span className="text-slate-400 block text-[10px]">Type</span>

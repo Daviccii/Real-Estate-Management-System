@@ -27,12 +27,14 @@ const Solutions = lazy(() => import('./pages/Solutions'))
 const Features = lazy(() => import('./pages/Features'))
 const About = lazy(() => import('./pages/About'))
 const Contact = lazy(() => import('./pages/Contact'))
+const Privacy = lazy(() => import('./pages/Privacy'))
 
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { FavoriteProvider } from './contexts/FavoriteContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import ToastProvider from './components/ToastProvider'
-import type { UserRole } from './types'
+import CookieConsent from './components/CookieConsent'
+import type { RouteRole } from './types'
 
 // Admin pages
 import AdminDashboard from './pages/admin/Dashboard'
@@ -51,6 +53,7 @@ import PaymentsManagement from './pages/admin/Payments'
 import MaintenanceManagement from './pages/admin/Maintenance'
 import AdminVerifications from './pages/admin/Verifications'
 import AdminAuditLogs from './pages/admin/AuditLogs'
+import AdminPrivacy from './pages/admin/Privacy'
 
 // Manager pages
 import ManagerDashboard from './pages/manager/Dashboard'
@@ -107,7 +110,7 @@ const RequireAuth: React.FC = () => {
   return <Outlet />
 }
 
-const RequireRole: React.FC<{ allowedRoles: UserRole[] }> = ({ allowedRoles }) => {
+const RequireRole: React.FC<{ allowedRoles: RouteRole[] }> = ({ allowedRoles }) => {
   const { user, loading, hasAnyRole, getDashboardPath } = useAuth()
 
   if (loading) return <div className="empty">Checking permissions…</div>
@@ -177,6 +180,14 @@ const App: React.FC = () => {
                   element={
                     <Suspense fallback={<div className="empty">Loading…</div>}>
                       <Contact />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/privacy"
+                  element={
+                    <Suspense fallback={<div className="empty">Loading…</div>}>
+                      <Privacy />
                     </Suspense>
                   }
                 />
@@ -305,6 +316,7 @@ const App: React.FC = () => {
                     <Route path="maintenance" element={<MaintenanceManagement />} />
                     <Route path="verifications" element={<AdminVerifications />} />
                     <Route path="audit-logs" element={<AdminAuditLogs />} />
+                    <Route path="privacy" element={<AdminPrivacy />} />
                     <Route path="inquiries" element={<InquiriesManagement />} />
                     <Route path="agents" element={<AgentsManagement />} />
                     <Route path="managers" element={<ManagersManagement />} />
@@ -319,6 +331,7 @@ const App: React.FC = () => {
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            <CookieConsent />
           </ToastProvider>
         </ErrorBoundary>
       </FavoriteProvider>

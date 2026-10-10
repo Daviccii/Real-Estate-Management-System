@@ -11,7 +11,7 @@ interface Favorite {
 const add = async (propertyId: number): Promise<Favorite> => {
   return api.request('/favorites/', {
     method: 'POST',
-    body: JSON.stringify({ property_id }),
+    body: JSON.stringify({ property_id: propertyId }),
   })
 }
 

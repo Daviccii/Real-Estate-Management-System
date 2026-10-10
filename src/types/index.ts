@@ -1,5 +1,9 @@
 export type UserRole = 'user' | 'tenant' | 'agent' | 'manager' | 'owner' | 'service_provider' | 'admin'
 
+// Route gates also list legacy aliases that only ever appear in users.roles_csv,
+// never in users.role, so they cannot be part of UserRole itself.
+export type RouteRole = UserRole | 'landlord' | 'realtor' | 'contractor' | 'vendor'
+
 export interface User {
   id: number
   email: string
@@ -101,6 +105,7 @@ export interface Building {
   description?: string | null
   created_at?: string
   updated_at?: string
+  property_title?: string | null
 }
 
 export interface Unit {
@@ -390,18 +395,4 @@ export interface PropertyMatchResult {
   property: Property
   match_score: number
   match_reasons: string[]
-}
-
-export interface Building {
-  id: number
-  property_id: number
-  name: string
-  total_floors?: number | null
-  units_count?: number | null
-  amenities?: string | null
-  year_built?: number | null
-  description?: string | null
-  created_at: string
-  updated_at: string
-  property_title?: string | null
 }

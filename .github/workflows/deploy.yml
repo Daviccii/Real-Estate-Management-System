@@ -1,0 +1,62 @@
+# Environment promotion: pick a target environment and this workflow first
+# re-runs the full CI pipeline, then promotes only if everything is green.
+#
+# Protect "production" in Repo settings > Environments with required
+# reviewers, so a dispatch cannot ship without a human approval.
+#
+# The deploy steps themselves are placeholders: fill in the command for your
+# hosting target (docker compose pull && up -d, kubectl set image, rsync to a
+# VPS, a PaaS CLI, ...). Until then the workflow only verifies the promotion
+# path end to end.
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        required: true
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  staging:
+    name: Promote to staging
+    if: inputs.environment == 'staging'
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy
+        run: |
+          echo "Promoting commit ${{ github.sha }} to staging."
+          echo "TODO: replace this step with the staging deploy command,"
+          echo "e.g. docker compose pull && docker compose up -d"
+
+  production:
+    name: Promote to production
+    if: inputs.environment == 'production'
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy
+        run: |
+          echo "Promoting commit ${{ github.sha }} to production."
+          echo "TODO: replace this step with the production deploy command."

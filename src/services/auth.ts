@@ -1,5 +1,7 @@
 import { api } from './api'
 import { setToken, clearToken } from './token'
+import { isMfaChallenge } from './mfa'
+import type { LoginSession } from './mfa'
 
 async function fetchUser(){
   return api.request('/users/me')
@@ -126,11 +128,15 @@ export const authService = {
   },
 
   async login(email: string, password: string){
-    const data = await api.request('/auth/login', {
+    const data = await api.request<LoginSession>('/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     })
+    // Second factor required: no session yet, the caller must finish the challenge.
+    if (isMfaChallenge(data)) {
+      return data
+    }
     if (data?.access_token){
       setToken(data.access_token)
       let user = data.user

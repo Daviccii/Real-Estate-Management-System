@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { authService } from '../services/auth'
-import type { User, UserRole } from '../types'
+import { isMfaChallenge } from '../services/mfa'
+import type { RouteRole, User, UserRole } from '../types'
 
 type AuthContextType = {
   user: User | null
@@ -8,8 +9,8 @@ type AuthContextType = {
   login: (email:string,password:string)=>Promise<any>
   register: (email:string,password:string,full_name?:string)=>Promise<void>
   logout: ()=>void
-  hasRole: (role: UserRole) => boolean
-  hasAnyRole: (roles: UserRole[]) => boolean
+  hasRole: (role: RouteRole) => boolean
+  hasAnyRole: (roles: RouteRole[]) => boolean
   getDashboardPath: () => string
 }
 
@@ -70,7 +71,10 @@ export const AuthProvider: React.FC<{children:React.ReactNode}> = ({children}) =
     setLoading(true)
     try{
       const res = await authService.login(email,password)
-      setUser(res.user)
+      // A second-factor challenge is not a session: no user to store yet.
+      if (!isMfaChallenge(res)) {
+        setUser(res.user ?? null)
+      }
       return res
     }finally{setLoading(false)}
   }
@@ -88,7 +92,7 @@ export const AuthProvider: React.FC<{children:React.ReactNode}> = ({children}) =
     })
   }
 
-  const hasRole = (role: UserRole): boolean => {
+  const hasRole = (role: RouteRole): boolean => {
     if (!user) return false
     if (user.role === 'admin') return true
     if (user.role === role) return true
@@ -98,7 +102,7 @@ export const AuthProvider: React.FC<{children:React.ReactNode}> = ({children}) =
     return false
   }
 
-  const hasAnyRole = (roles: UserRole[]): boolean => {
+  const hasAnyRole = (roles: RouteRole[]): boolean => {
     if (!user) return false
     return roles.some(role => hasRole(role))
   }

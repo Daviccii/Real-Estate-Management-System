@@ -22,7 +22,7 @@ export const OwnerUnits: React.FC = () => {
 
   useEffect(() => {
     if (selectedPropertyId) {
-      unitService.list(selectedPropertyId).then(setUnits)
+      unitService.list({ property_id: selectedPropertyId }).then(setUnits)
     }
   }, [selectedPropertyId])
 

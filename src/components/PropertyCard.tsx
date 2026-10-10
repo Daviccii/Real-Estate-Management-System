@@ -89,7 +89,9 @@ const PropertyCard: React.FC<PropertyCardProps> = ({p, variant = 'default', onFa
 
   return (
     <article className={`property-card card ${variant === 'featured' ? 'property-card--featured' : ''}`}>
-      <div className="property-card-media" style={{ backgroundImage: `url(${img})` }} aria-hidden="true">
+      {/* The photo is a CSS background, so nothing here needs hiding - an
+          aria-hidden wrapper also removed the save button from the a11y tree. */}
+      <div className="property-card-media" style={{ backgroundImage: `url(${img})` }}>
         <div className="property-card-overlay" />
         <div className="property-card-media-top">
           <span className="property-card-pill">{variantLabel}</span>

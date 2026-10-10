@@ -16,6 +16,7 @@ const AdminSidebar: React.FC = () => {
     { path: '/admin/maintenance', label: 'Maintenance', icon: '🔧' },
     { path: '/admin/verifications', label: 'Verifications', icon: '🛡️' },
     { path: '/admin/audit-logs', label: 'Audit Trail', icon: '📋' },
+    { path: '/admin/privacy', label: 'Deletion Requests', icon: '🔐' },
     { path: '/admin/users', label: 'Users', icon: '👥' },
     { path: '/admin/inquiries', label: 'Inquiries', icon: '💬' },
     { path: '/admin/agents', label: 'Agents', icon: '🤝' },

@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { adminService } from '../../services/admin'
 import type { PlatformSettings } from '../../services/admin'
 import { useToast } from '../../components/ToastProvider'
+import MfaPanel from '../../components/MfaPanel'
 
 const AdminSettings: React.FC = () => {
   const { user } = useAuth()
@@ -183,6 +184,10 @@ const AdminSettings: React.FC = () => {
             </label>
           </div>
         </div>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <MfaPanel />
       </div>
 
       <div className="card" style={{ marginTop: 24 }}>

@@ -2,17 +2,18 @@ import React from 'react'
 
 type Props = {
   title: string
+  icon?: string
   value: string | number
   subtitle?: string
   trend?: { value: string, positive?: boolean }
   loading?: boolean
 }
 
-const StatCard: React.FC<Props> = ({ title, value, subtitle, trend, loading }) => {
+const StatCard: React.FC<Props> = ({ title, icon, value, subtitle, trend, loading }) => {
   return (
     <div className="card stat-card" role="region" aria-label={title} style={{display:'flex',flexDirection:'column',gap:8}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <div style={{fontSize:12,color:'var(--muted)'}}>{title}</div>
+        <div style={{fontSize:12,color:'var(--muted)'}}>{icon && <span aria-hidden="true">{icon} </span>}{title}</div>
         {trend && <div style={{color: trend.positive? 'var(--success)': 'var(--danger)', fontWeight:700}}>{trend.value}</div>}
       </div>
       <div style={{fontSize:24,fontWeight:700}}>

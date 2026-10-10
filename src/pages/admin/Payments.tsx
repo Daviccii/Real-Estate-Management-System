@@ -113,8 +113,22 @@ const PaymentsManagement: React.FC = () => {
   }
 
   const handleRecord = async () => {
+    // The form holds select/text values as strings; an untouched id would post 0
+    const requiredIds = ['tenant_id', 'lease_id', 'property_id', 'unit_id'] as const
+    const missing = requiredIds.find((field) => !Number(recordForm[field]))
+    if (missing) {
+      addToast({ message: `${missing.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase())} is required`, type: 'error' })
+      return
+    }
+
     try {
-      await paymentService.create(recordForm)
+      await paymentService.create({
+        ...recordForm,
+        tenant_id: Number(recordForm.tenant_id),
+        lease_id: Number(recordForm.lease_id),
+        property_id: Number(recordForm.property_id),
+        unit_id: Number(recordForm.unit_id),
+      })
       addToast({ message: 'Payment recorded successfully', type: 'success' })
       setShowRecordModal(false)
       loadPayments()

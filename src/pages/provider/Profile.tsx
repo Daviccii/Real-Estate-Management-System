@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { submitVerification } from '../../services/verification'
 import { updateMyProviderProfile } from '../../services/serviceMarketplace'
+import MfaPanel from '../../components/MfaPanel'
 
 const TRADE_CATEGORIES = [
   'Plumbing',
@@ -267,6 +268,10 @@ export const ProviderProfile: React.FC = () => {
             </form>
           </div>
         </div>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <MfaPanel />
       </div>
     </div>
   )

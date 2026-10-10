@@ -30,11 +30,17 @@ function formatErrorMessage(data: any, fallback: string): string {
   return fallback
 }
 
+const API_VERSION = '/api/v1'
+
 function normalizePath(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://')) return path
   const trimmed = path.startsWith('/') ? path : `/${path}`
-  if (trimmed.startsWith('/api/') || trimmed === '/api') return trimmed
-  return `/api${trimmed}`
+  if (trimmed.startsWith(`${API_VERSION}/`)) return trimmed
+  // Callers mix bare ('/properties'), legacy ('/api/properties') and versioned
+  // paths; every one of them must end up on the current version.
+  if (trimmed.startsWith('/api/')) return `${API_VERSION}${trimmed.slice(4)}`
+  if (trimmed === '/api') return API_VERSION
+  return `${API_VERSION}${trimmed}`
 }
 
 async function request<T = any>(path: string, opts: RequestInit = {}): Promise<T>{

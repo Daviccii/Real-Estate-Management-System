@@ -240,7 +240,7 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({ isOpen, onClos
                       <div className="flex items-center gap-4">
                         <div className="w-20 h-20 rounded-xl bg-slate-200 overflow-hidden flex-shrink-0 relative">
                           {p.image_url ? (
-                            <img src={p.image_url} alt={p.title} className="w-full h-full object-cover" />
+                            <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-xl">🏠</div>
                           )}
@@ -262,7 +262,7 @@ export const SmartMatchModal: React.FC<SmartMatchModalProps> = ({ isOpen, onClos
                             <span className="text-xs text-slate-400">• {p.bedrooms ?? 0} Beds • {p.bathrooms ?? 0} Baths</span>
                           </div>
 
-                          <h4 className="font-bold text-sm text-slate-800">{p.title}</h4>
+                          <h4 className="font-bold text-sm text-slate-800">{p.name}</h4>
                           <p className="text-xs text-slate-500">{p.address}, {p.city}</p>
 
                           <div className="flex flex-wrap gap-1 pt-1">

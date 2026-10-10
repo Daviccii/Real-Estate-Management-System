@@ -1,6 +1,10 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { submitVerification } from '../../services/verification'
+import MfaPanel from '../../components/MfaPanel'
+import { getMyDeletionRequest, requestAccountDeletion, cancelAccountDeletion, exportMyData, type DeletionRequestInfo } from '../../services/privacy'
+import { notificationService, type EmailPreference } from '../../services/notification'
 
 export const TenantProfile: React.FC = () => {
   const { user } = useAuth()
@@ -9,6 +13,73 @@ export const TenantProfile: React.FC = () => {
   const [docUrl, setDocUrl] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [statusMsg, setStatusMsg] = useState<string | null>(null)
+
+  const [deletion, setDeletion] = useState<DeletionRequestInfo | null>(null)
+  const [privacyBusy, setPrivacyBusy] = useState(false)
+  const [privacyMsg, setPrivacyMsg] = useState<string | null>(null)
+  const [emailPref, setEmailPref] = useState<EmailPreference | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    getMyDeletionRequest()
+      .then((res) => { if (!cancelled) setDeletion(res.request) })
+      .catch(() => {})
+    notificationService.getEmailPreference()
+      .then((pref) => { if (!cancelled) setEmailPref(pref) })
+      .catch(() => { if (!cancelled) setEmailPref({ notifications_enabled: true }) })
+    return () => { cancelled = true }
+  }, [])
+
+  const handleToggleEmailPref = async () => {
+    if (!emailPref) return
+    const next = !emailPref.notifications_enabled
+    setEmailPref({ notifications_enabled: next })
+    try {
+      const saved = await notificationService.updateEmailPreference(next)
+      setEmailPref(saved)
+    } catch {
+      setEmailPref({ notifications_enabled: !next })
+    }
+  }
+
+  const handleExport = async () => {
+    setPrivacyBusy(true); setPrivacyMsg(null)
+    try {
+      await exportMyData()
+      setPrivacyMsg('Your data export has been downloaded.')
+    } catch {
+      setPrivacyMsg('Could not download your export. Please try again.')
+    } finally {
+      setPrivacyBusy(false)
+    }
+  }
+
+  const handleRequestDeletion = async () => {
+    if (!window.confirm('Request deletion of your account and personal data? You can cancel while the request is pending.')) return
+    setPrivacyBusy(true); setPrivacyMsg(null)
+    try {
+      const res = await requestAccountDeletion('Requested by user from profile page')
+      setDeletion(res.request)
+      setPrivacyMsg('Your deletion request has been submitted for review.')
+    } catch {
+      setPrivacyMsg('Could not submit your deletion request.')
+    } finally {
+      setPrivacyBusy(false)
+    }
+  }
+
+  const handleCancelDeletion = async () => {
+    setPrivacyBusy(true); setPrivacyMsg(null)
+    try {
+      await cancelAccountDeletion()
+      setDeletion((d) => (d ? { ...d, status: 'cancelled' } : d))
+      setPrivacyMsg('Your deletion request has been cancelled.')
+    } catch {
+      setPrivacyMsg('Could not cancel the request.')
+    } finally {
+      setPrivacyBusy(false)
+    }
+  }
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -126,6 +197,82 @@ export const TenantProfile: React.FC = () => {
               {submitting ? 'Submitting...' : 'Submit Verification Request'}
             </button>
           </form>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <MfaPanel />
+      </div>
+
+      <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm space-y-4" style={{ marginTop: 24 }}>
+        <h2 className="font-bold text-base text-slate-800 border-b border-slate-100 pb-3">Privacy &amp; Your Data</h2>
+        {privacyMsg && (
+          <div className="p-3 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-sm">{privacyMsg}</div>
+        )}
+        {deletion?.status === 'pending' && (
+          <p className="text-sm text-amber-700">
+            A deletion request submitted{' '}
+            {deletion.requested_at ? new Date(deletion.requested_at).toLocaleString() : ''} is pending review.
+          </p>
+        )}
+        <p className="text-sm text-slate-500">
+          Download everything we store about you, or request erasure of your account. See our{' '}
+          <Link to="/privacy" className="text-teal-700 underline">privacy policy</Link> for what is retained and why.
+        </p>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            onClick={handleExport}
+            disabled={privacyBusy}
+            className="py-2 px-4 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold shadow transition disabled:opacity-50"
+          >
+            Download my data (JSON)
+          </button>
+          {deletion?.status === 'pending' ? (
+            <button
+              onClick={handleCancelDeletion}
+              disabled={privacyBusy}
+              className="py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition disabled:opacity-50"
+            >
+              Cancel deletion request
+            </button>
+          ) : (
+            <button
+              onClick={handleRequestDeletion}
+              disabled={privacyBusy}
+              className="py-2 px-4 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-semibold transition disabled:opacity-50"
+            >
+              Request account deletion
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm" style={{ marginTop: 24 }}>
+        <h2 className="font-bold text-base text-slate-800 border-b border-slate-100 pb-3">Email Notifications</h2>
+        <div className="flex items-center justify-between gap-4 pt-4">
+          <div className="text-sm">
+            <p className="font-semibold text-slate-800">Product &amp; account notification emails</p>
+            <p className="text-xs text-slate-400 mt-1">
+              Payment, lease and maintenance updates by email. Security emails (password reset,
+              verification) are always sent.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={emailPref?.notifications_enabled ?? true}
+            disabled={!emailPref}
+            onClick={handleToggleEmailPref}
+            className={`relative shrink-0 h-6 w-11 rounded-full transition-colors ${
+              emailPref?.notifications_enabled ? 'bg-teal-600' : 'bg-slate-300'
+            } disabled:opacity-50`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                emailPref?.notifications_enabled ? 'translate-x-5' : ''
+              }`}
+            />
+          </button>
         </div>
       </div>
     </div>

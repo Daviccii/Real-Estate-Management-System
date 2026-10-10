@@ -24,13 +24,14 @@ const InvestPage: React.FC = () => {
   const [sort,setSort]=useState('')
   const [budgetFilter,setBudgetFilter]=useState('')
   const [bedroomsFilter,setBedroomsFilter]=useState('')
+  const [verifiedOnly,setVerifiedOnly]=useState(false)
   const [matched,setMatched]=useState(false)
 
   const { addToast } = useToast()
   const navigate = useNavigate()
   const location = useLocation()
 
-  const fetch = async (overrides?: { q?: string; type?: string; city?: string; status?: string; sort?: string; page?: number }) => {
+  const fetch = async (overrides?: { q?: string; type?: string; city?: string; status?: string; sort?: string; verified?: boolean; page?: number }) => {
     setLoading(true); setError(null)
     const targetPage = overrides?.page ?? page
     const filterParams = {
@@ -38,6 +39,7 @@ const InvestPage: React.FC = () => {
       property_type: (overrides?.type ?? typeFilter) || undefined,
       city: (overrides?.city ?? cityFilter) || undefined,
       status: (overrides?.status ?? statusFilter) || undefined,
+      verified_only: (overrides?.verified ?? verifiedOnly) || undefined,
       purpose: 'invest' as const,
     }
     try{
@@ -102,9 +104,9 @@ const InvestPage: React.FC = () => {
 
   function handleClear() {
     setQ(''); setTypeFilter(''); setCityFilter(''); setStatusFilter(''); setSort('')
-    setBudgetFilter(''); setBedroomsFilter(''); setMatched(false)
+    setBudgetFilter(''); setBedroomsFilter(''); setMatched(false); setVerifiedOnly(false)
     navigate('/invest', { replace: true })
-    fetch({ q: '', type: '', city: '', status: '', sort: '', page: 1 })
+    fetch({ q: '', type: '', city: '', status: '', sort: '', verified: false, page: 1 })
   }
 
   function handlePrevPage() {
@@ -133,7 +135,7 @@ const InvestPage: React.FC = () => {
     })
   }, [items, bedroomsFilter, budgetFilter])
 
-  const activeFilterCount = [typeFilter, cityFilter, statusFilter, budgetFilter, bedroomsFilter].filter(Boolean).length
+  const activeFilterCount = [typeFilter, cityFilter, statusFilter, budgetFilter, bedroomsFilter].filter(Boolean).length + (verifiedOnly ? 1 : 0)
 
   return (
     <div>
@@ -167,6 +169,8 @@ const InvestPage: React.FC = () => {
         onStatusChange={setStatusFilter}
         onBudgetChange={setBudgetFilter}
         onBedroomsChange={setBedroomsFilter}
+        verifiedOnly={verifiedOnly}
+        onVerifiedOnlyChange={setVerifiedOnly}
         onSortChange={setSort}
         onPurposeChange={() => {}}
         onApply={handleSearch}

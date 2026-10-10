@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { submitVerification } from '../../services/verification'
+import MfaPanel from '../../components/MfaPanel'
 
 export const OwnerSettings: React.FC = () => {
   const { user } = useAuth()
@@ -99,6 +100,10 @@ export const OwnerSettings: React.FC = () => {
             </button>
           </form>
         </div>
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <MfaPanel />
       </div>
     </div>
   )

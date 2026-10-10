@@ -6,8 +6,19 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-real_estate}
       POSTGRES_USER: ${POSTGRES_USER:-real_estate}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-local-password}
+    # WAL archiving is what makes point-in-time recovery possible: daily dumps alone
+    # can only be restored to the moment they were taken.
+    command:
+      - postgres
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=test ! -f /pg_wal_archive/%f && cp %p /pg_wal_archive/%f
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - pg_wal_archive:/pg_wal_archive
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
@@ -51,7 +62,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:-replace-this-with-a-random-secret-at-least-32-characters}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
       LOG_FORMAT: ${LOG_FORMAT:-json}
-      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-false}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
       RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-120}
       REDIS_URL: redis://redis:6379/0
     depends_on:
@@ -74,6 +85,31 @@ services:
         condition: service_completed_successfully
     command: ["admin", "python", "-m", "app.worker"]
 
+  db-backup:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-real_estate}:${POSTGRES_PASSWORD:-change-this-local-password}@postgres:5432/${POSTGRES_DB:-real_estate}
+      SECRET_KEY: ${SECRET_KEY:-replace-this-with-a-random-secret-at-least-32-characters}
+      BACKUP_DIR: /backups
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-24}
+      BACKUP_PHYSICAL_ENABLED: ${BACKUP_PHYSICAL_ENABLED:-true}
+      BACKUP_SECONDARY_DIR: ${BACKUP_SECONDARY_DIR:-}
+      BACKUP_WAL_ARCHIVE_DIR: /pg_wal_archive
+    volumes:
+      - db_backups:/backups
+      - pg_wal_archive:/pg_wal_archive:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    command: ["admin", "python", "scripts/backup_database.py", "--daemon"]
+
 volumes:
   postgres_data:
   redis_data:
+  db_backups:
+  pg_wal_archive:
