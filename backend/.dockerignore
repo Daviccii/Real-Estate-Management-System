@@ -1,0 +1,105 @@
+# ============================================================================
+# .DOCKERIGNORE - Exclude files from Docker build
+# ============================================================================
+# 
+# These files are excluded from the Docker build context to:
+# - Reduce build time
+# - Reduce final image size
+# - Avoid including secrets or credentials
+# - Improve security
+#
+# ============================================================================
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE and editor
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-*
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Testing
+.tox/
+.nox/
+.hypothesis/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Documentation
+docs/
+*.md
+LICENSE
+
+# Development
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+
+# Node (if using Node tools)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile.dev
+docker-compose.dev.yml
+
+# Miscellaneous
+.venv/
+*.log
+*.pot
+*.mo
+*/.coverage
+*/.pytest_cache
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Migrations (optional - exclude if you want them in image)
+# migrations/

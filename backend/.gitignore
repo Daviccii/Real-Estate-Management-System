@@ -1,0 +1,10 @@
+.env
+*.pyc
+__pycache__/
+.venv/
+venv/
+*.db
+.pytest_cache/
+uploads/
+backups/
+.git.pre-consolidation
