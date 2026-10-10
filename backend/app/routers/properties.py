@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from sqlalchemy import func
@@ -18,6 +18,7 @@ from app.repositories.property_repo import (
 from app.models.user import User
 from app.models.property import Property
 from app.services.audit_service import log_audit_event
+from app.services.matching_service import rank_properties
 from app.services.cache_service import (
     cache_get_json,
     cache_set_json,
@@ -29,108 +30,35 @@ from app.services.cache_service import (
 router = APIRouter(prefix="/properties", tags=["properties"])
 
 
-def calculate_property_match(prop: Property, criteria: PropertyMatchRequest) -> tuple[int, list[str]]:
-    score = 40  # base compatibility score
-    reasons = []
-
-    # 1. Budget Fit (up to 30 pts)
-    prop_price = None
-    try:
-        if prop.price:
-            prop_price = float(str(prop.price).replace(",", "").replace("KSh", "").replace("$", "").strip())
-    except Exception:
-        pass
-
-    if criteria.max_budget and prop_price:
-        if prop_price <= criteria.max_budget:
-            score += 30
-            reasons.append(f"Within your budget: Listed at {prop.price_label or f'KSh {prop_price:,.0f}'} (Under your {criteria.max_budget:,.0f} limit)")
-        elif prop_price <= criteria.max_budget * 1.15:
-            score += 15
-            reasons.append(f"Close to budget: {prop.price_label or f'KSh {prop_price:,.0f}'} (within 15% of your max budget)")
-        else:
-            score -= 10
-    elif prop_price:
-        score += 10
-        reasons.append(f"Pricing: {prop.price_label or f'KSh {prop_price:,.0f}'}")
-
-    # 2. Location Fit (up to 20 pts)
-    if criteria.preferred_city:
-        if prop.city and criteria.preferred_city.lower() in prop.city.lower():
-            score += 20
-            reasons.append(f"Prime location: Situated in {prop.city}")
-        else:
-            score += 5
-
-    # 3. Bedroom / Household Size (up to 20 pts)
-    if criteria.min_bedrooms is not None:
-        if prop.bedrooms is not None and prop.bedrooms >= criteria.min_bedrooms:
-            score += 15
-            reasons.append(f"Space: Offers {prop.bedrooms} bedroom{'s' if prop.bedrooms != 1 else ''} (Matches your {criteria.min_bedrooms}+ requirement)")
-    
-    if criteria.household_size:
-        needed_beds = 1 if criteria.household_size <= 2 else (2 if criteria.household_size <= 4 else 3)
-        if prop.bedrooms and prop.bedrooms >= needed_beds:
-            score += 5
-            reasons.append(f"Household size: Comfortably accommodates a family of {criteria.household_size}")
-
-    # 4. Property Type
-    if criteria.property_type and prop.property_type:
-        if criteria.property_type.lower() in prop.property_type.lower():
-            score += 10
-            reasons.append(f"Type: Matches requested {prop.property_type.capitalize()}")
-
-    # 5. Amenities & Lifestyle
-    prop_amenities = (prop.amenities or "").lower()
-    if criteria.require_parking:
-        if prop.parking_spaces and prop.parking_spaces > 0 or "parking" in prop_amenities:
-            score += 10
-            reasons.append("Parking: Includes dedicated on-site parking spaces")
-    if criteria.require_security and ("security" in prop_amenities or "cctv" in prop_amenities):
-        score += 5
-        reasons.append("Security: Features 24/7 security & access control")
-    if criteria.require_balcony and "balcony" in prop_amenities:
-        score += 5
-        reasons.append("Outdoor space: Includes private balcony")
-
-    if criteria.furnishing and prop.furnishing:
-        if criteria.furnishing.lower() == prop.furnishing.lower():
-            score += 5
-            reasons.append(f"Furnishing: {prop.furnishing.capitalize()}")
-
-    final_score = min(100, max(15, score))
-    return final_score, reasons
-
-
 @router.post("/public/match", response_model=List[PropertyMatchResult], tags=["public"])
 @router.post("/match", response_model=List[PropertyMatchResult])
 def match_properties(
     criteria: PropertyMatchRequest,
+    limit: int = Query(20, ge=1, le=50),
     db: Session = Depends(get_db),
 ):
     """
     Transparent Smart Discovery Match Engine.
     Evaluates properties against user lifestyle, budget, and size criteria,
     computing transparent compatibility scores with clear explanations.
+    Listings priced more than 30% above the stated budget are excluded;
+    results are capped at `limit` (default 20, max 50).
     """
     query = db.query(Property).filter(Property.status == "active")
     if criteria.purpose:
         query = query.filter(Property.purpose == criteria.purpose)
 
-    properties = query.all()
-    results = []
-
-    for p in properties:
-        score, reasons = calculate_property_match(p, criteria)
-        results.append(PropertyMatchResult(
+    ranked = rank_properties(query.all(), criteria, limit=limit)
+    return [
+        PropertyMatchResult(
             property=PropertyOut.model_validate(p, from_attributes=True),
-            match_score=score,
-            match_reasons=reasons
-        ))
-
-    # Sort descending by compatibility score
-    results.sort(key=lambda x: x.match_score, reverse=True)
-    return results
+            match_score=result.score,
+            match_label=result.label,
+            match_reasons=result.reasons,
+            score_breakdown=result.breakdown,
+        )
+        for p, result in ranked
+    ]
 
 
 @router.post("/", response_model=PropertyOut, status_code=status.HTTP_201_CREATED)

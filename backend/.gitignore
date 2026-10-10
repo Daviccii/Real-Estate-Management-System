@@ -4,6 +4,7 @@ __pycache__/
 .venv/
 venv/
 *.db
+*.db.bak*
 .pytest_cache/
 uploads/
 backups/

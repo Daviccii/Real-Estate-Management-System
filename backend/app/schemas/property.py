@@ -1,5 +1,5 @@
-from pydantic import BaseModel, ConfigDict, constr, conint
-from typing import Optional, Literal, List
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, constr, conint
+from typing import Dict, Optional, Literal, List
 from datetime import datetime
 
 PropertyPurpose = Literal["buy", "rent", "invest"]
@@ -148,8 +148,15 @@ class PropertyOut(PropertyBase):
 
 
 class PropertyMatchRequest(BaseModel):
-    max_budget: Optional[float] = None
-    preferred_city: Optional[str] = None
+    # Accept both the current field names and the legacy aliases earlier
+    # clients posted (city / max_price / location were silently dropped
+    # before because they were not schema fields).
+    max_budget: Optional[float] = Field(
+        default=None, validation_alias=AliasChoices("max_budget", "max_price")
+    )
+    preferred_city: Optional[str] = Field(
+        default=None, validation_alias=AliasChoices("preferred_city", "city", "location")
+    )
     min_bedrooms: Optional[int] = None
     property_type: Optional[str] = None
     purpose: Optional[str] = None
@@ -158,9 +165,12 @@ class PropertyMatchRequest(BaseModel):
     require_security: Optional[bool] = None
     require_balcony: Optional[bool] = None
     furnishing: Optional[str] = None
+    amenities: Optional[List[str]] = None
 
 
 class PropertyMatchResult(BaseModel):
     property: PropertyOut
     match_score: int
+    match_label: str = "Possible match"
     match_reasons: List[str]
+    score_breakdown: Dict[str, int] = {}

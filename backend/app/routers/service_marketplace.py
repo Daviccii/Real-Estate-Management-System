@@ -1,21 +1,27 @@
 from typing import List, Optional, Union
 from datetime import datetime
 from app.utils.time import utc_now
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.database.database import get_db
 from app.auth.deps import get_current_user
-from app.auth.roles import company_resource_access, require_user, require_service_provider, require_management, require_admin
+from app.auth.roles import company_resource_access, require_user, require_service_provider
 from app.models.service_marketplace import ServiceProviderProfile, MaintenanceQuote, MaintenanceWorkOrder
 from app.models.maintenance import Maintenance
 from app.models.property import Property
 from app.models.user import User
 from app.models.notification import Notification
+from app.models.provider_rating import ProviderRating
 from app.services.audit_service import log_audit_event
 
 router = APIRouter(prefix="/service-marketplace", tags=["service-marketplace"])
+
+WORK_ORDER_STATUSES = {"accepted", "in_progress", "completed", "verified"}
+REVIEWABLE_ORDER_STATUSES = {"completed", "verified"}
+CLOSED_MAINTENANCE_STATUSES = ("resolved", "closed")
 
 
 class ProfileCreate(BaseModel):
@@ -58,6 +64,94 @@ class WorkOrderUpdate(BaseModel):
     completion_photos_json: Optional[str] = None
 
 
+class ReviewCreate(BaseModel):
+    score: int = Field(..., ge=1, le=5)
+    comment: Optional[str] = Field(None, max_length=1000)
+
+
+def _rating_stats(db: Session, provider_user_ids: List[int]) -> dict:
+    """Aggregate review stats per provider user id: {user_id: (avg_score, count)}."""
+    if not provider_user_ids:
+        return {}
+    rows = (
+        db.query(ProviderRating.provider_id, func.avg(ProviderRating.score), func.count(ProviderRating.id))
+        .filter(ProviderRating.provider_id.in_(provider_user_ids))
+        .group_by(ProviderRating.provider_id)
+        .all()
+    )
+    return {pid: (float(avg or 0), int(cnt)) for pid, avg, cnt in rows}
+
+
+def _completed_jobs(db: Session, provider_user_ids: List[int]) -> dict:
+    """Completed/verified work order counts per provider user id."""
+    if not provider_user_ids:
+        return {}
+    rows = (
+        db.query(MaintenanceWorkOrder.provider_id, func.count(MaintenanceWorkOrder.id))
+        .filter(
+            MaintenanceWorkOrder.provider_id.in_(provider_user_ids),
+            MaintenanceWorkOrder.status.in_(tuple(REVIEWABLE_ORDER_STATUSES)),
+        )
+        .group_by(MaintenanceWorkOrder.provider_id)
+        .all()
+    )
+    return {pid: int(cnt) for pid, cnt in rows}
+
+
+def _mask_name(full_name: Optional[str]) -> str:
+    parts = (full_name or "").strip().split()
+    if not parts:
+        return "PropNoxa user"
+    if len(parts) == 1:
+        return parts[0]
+    return f"{parts[0]} {parts[-1][0]}."
+
+
+def _truncate(text: Optional[str], limit: int = 300) -> Optional[str]:
+    if not text:
+        return text
+    text = text.strip()
+    return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
+
+
+def _provider_dict(
+    p: ServiceProviderProfile,
+    ratings: dict,
+    jobs: dict,
+    viewer: Optional[User] = None,
+) -> dict:
+    avg, count = ratings.get(p.user_id, (None, 0))
+    include_contact = bool(viewer and (viewer.role == "admin" or viewer.id == p.user_id))
+    return {
+        "id": p.id,
+        "user_id": p.user_id,
+        "company_name": p.business_name,
+        "business_name": p.business_name,
+        "categories": [p.specialty],
+        "specialty": p.specialty,
+        "service_areas": [s.strip() for s in (p.service_areas or "").split(",") if s.strip()],
+        "hourly_rate": p.hourly_rate,
+        "license_number": p.license_number,
+        "insurance_verified": p.is_verified,
+        "bio": p.bio,
+        "years_experience": p.years_experience,
+        "rating_avg": round(avg, 2) if count else None,
+        "reviews_count": count,
+        "completed_jobs_count": jobs.get(p.user_id, 0),
+        "is_available": p.is_available,
+        "created_at": p.created_at.isoformat() if hasattr(p.created_at, "isoformat") else str(p.created_at),
+        "user_name": p.user.full_name if p.user else None,
+        "user_email": p.user.email if (p.user and include_contact) else None,
+        "user_phone": getattr(p.user, "phone", None) if (p.user and include_contact) else None,
+    }
+
+
+def _resolve_provider(db: Session, provider_id: int) -> Optional[ServiceProviderProfile]:
+    return db.query(ServiceProviderProfile).filter(
+        (ServiceProviderProfile.id == provider_id) | (ServiceProviderProfile.user_id == provider_id)
+    ).first()
+
+
 @router.post("/profile")
 @router.post("/providers/profile")
 def create_or_update_provider_profile(
@@ -83,6 +177,7 @@ def create_or_update_provider_profile(
             years_experience=payload.years_experience or 1,
             bio=payload.bio,
             service_areas=areas,
+            is_available=payload.is_available if payload.is_available is not None else True,
         )
         db.add(profile)
         if current_user.role == "user":
@@ -100,29 +195,19 @@ def create_or_update_provider_profile(
             profile.bio = payload.bio
         if areas is not None:
             profile.service_areas = areas
+        if payload.is_available is not None:
+            profile.is_available = payload.is_available
 
     db.commit()
     db.refresh(profile)
     log_audit_event(db, current_user.id, "UPDATE_SERVICE_PROVIDER_PROFILE", "service_provider", profile.id)
-    return {
-        "id": profile.id,
-        "user_id": profile.user_id,
-        "company_name": profile.business_name,
-        "business_name": profile.business_name,
-        "categories": [profile.specialty],
-        "specialty": profile.specialty,
-        "service_areas": [s.strip() for s in (profile.service_areas or "").split(",") if s.strip()],
-        "hourly_rate": profile.hourly_rate,
-        "license_number": profile.license_number,
-        "insurance_verified": profile.is_verified,
-        "rating_avg": profile.rating or 5.0,
-        "completed_jobs_count": 0,
-        "is_available": True,
-        "created_at": profile.created_at.isoformat() if hasattr(profile.created_at, "isoformat") else str(profile.created_at)
-    }
+    ratings = _rating_stats(db, [profile.user_id])
+    jobs = _completed_jobs(db, [profile.user_id])
+    return _provider_dict(profile, ratings, jobs, viewer=current_user)
 
 
 @router.get("/profile/me")
+@router.get("/providers/profile/me")
 def get_my_provider_profile(
     current_user: User = Depends(require_user),
     db: Session = Depends(get_db),
@@ -130,110 +215,233 @@ def get_my_provider_profile(
     profile = db.query(ServiceProviderProfile).filter(ServiceProviderProfile.user_id == current_user.id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="Service provider profile not found")
-    return {
-        "id": profile.id,
-        "user_id": profile.user_id,
-        "company_name": profile.business_name,
-        "business_name": profile.business_name,
-        "categories": [profile.specialty],
-        "specialty": profile.specialty,
-        "service_areas": [s.strip() for s in (profile.service_areas or "").split(",") if s.strip()],
-        "hourly_rate": profile.hourly_rate,
-        "license_number": profile.license_number,
-        "insurance_verified": profile.is_verified,
-        "rating_avg": profile.rating or 5.0,
-        "completed_jobs_count": 0,
-        "is_available": True,
-        "created_at": profile.created_at.isoformat() if hasattr(profile.created_at, "isoformat") else str(profile.created_at)
-    }
+    ratings = _rating_stats(db, [profile.user_id])
+    jobs = _completed_jobs(db, [profile.user_id])
+    return _provider_dict(profile, ratings, jobs, viewer=current_user)
 
 
 @router.get("/providers")
 def list_verified_service_providers(
+    q: Optional[str] = None,
     category: Optional[str] = None,
     specialty: Optional[str] = None,
+    city: Optional[str] = None,
+    available_only: bool = False,
+    sort: str = Query("rating", pattern="^(rating|jobs|newest|name)$"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(12, ge=1, le=50),
+    current_user: User = Depends(require_user),
     db: Session = Depends(get_db),
 ):
     """
-    List service providers available for dispatching maintenance jobs.
+    Paginated, searchable directory of service providers for the marketplace.
     """
-    query = db.query(ServiceProviderProfile)
+    query = db.query(ServiceProviderProfile).join(User, ServiceProviderProfile.user_id == User.id)
+    query = query.filter(User.is_active.is_(True))
+
     filter_spec = specialty or category
     if filter_spec:
         query = query.filter(ServiceProviderProfile.specialty.ilike(f"%{filter_spec}%"))
-    
-    profiles = query.all()
-    return [
-        {
-            "id": p.id,
-            "user_id": p.user_id,
-            "company_name": p.business_name,
-            "business_name": p.business_name,
-            "categories": [p.specialty],
-            "specialty": p.specialty,
-            "service_areas": [s.strip() for s in (p.service_areas or "").split(",") if s.strip()],
-            "hourly_rate": p.hourly_rate,
-            "license_number": p.license_number,
-            "insurance_verified": p.is_verified,
-            "rating_avg": p.rating or 5.0,
-            "completed_jobs_count": 0,
-            "is_available": True,
-            "created_at": p.created_at.isoformat() if hasattr(p.created_at, "isoformat") else str(p.created_at),
-            "user_name": p.user.full_name if p.user else None,
-            "user_email": p.user.email if p.user else None,
-            "user_phone": getattr(p.user, "phone", None) if p.user else None,
-        }
-        for p in profiles
-    ]
+    if city:
+        query = query.filter(ServiceProviderProfile.service_areas.ilike(f"%{city}%"))
+    if q:
+        like = f"%{q}%"
+        query = query.filter(
+            ServiceProviderProfile.business_name.ilike(like)
+            | ServiceProviderProfile.specialty.ilike(like)
+            | ServiceProviderProfile.service_areas.ilike(like)
+        )
+    if available_only:
+        query = query.filter(ServiceProviderProfile.is_available.is_(True))
+
+    jobs_subq = (
+        db.query(
+            MaintenanceWorkOrder.provider_id.label("provider_user_id"),
+            func.count(MaintenanceWorkOrder.id).label("jobs_count"),
+        )
+        .filter(MaintenanceWorkOrder.status.in_(tuple(REVIEWABLE_ORDER_STATUSES)))
+        .group_by(MaintenanceWorkOrder.provider_id)
+        .subquery()
+    )
+
+    if sort == "jobs":
+        query = query.outerjoin(jobs_subq, jobs_subq.c.provider_user_id == ServiceProviderProfile.user_id)
+        query = query.order_by(func.coalesce(jobs_subq.c.jobs_count, 0).desc(), ServiceProviderProfile.id.asc())
+    elif sort == "newest":
+        query = query.order_by(ServiceProviderProfile.created_at.desc(), ServiceProviderProfile.id.desc())
+    elif sort == "name":
+        query = query.order_by(ServiceProviderProfile.business_name.asc())
+    else:
+        query = query.order_by(ServiceProviderProfile.rating.desc().nulls_last(), ServiceProviderProfile.id.asc())
+
+    total = query.count()
+    profiles = query.offset((page - 1) * page_size).limit(page_size).all()
+
+    user_ids = [p.user_id for p in profiles]
+    ratings = _rating_stats(db, user_ids)
+    jobs = _completed_jobs(db, user_ids)
+    return {
+        "items": [_provider_dict(p, ratings, jobs, viewer=current_user) for p in profiles],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
 
 
 @router.get("/providers/{provider_id}")
 def get_provider_details(
     provider_id: int,
+    current_user: User = Depends(require_user),
     db: Session = Depends(get_db),
 ):
     """
     Get public details of a specific service provider.
     """
-    p = db.query(ServiceProviderProfile).filter(
-        (ServiceProviderProfile.id == provider_id) | (ServiceProviderProfile.user_id == provider_id)
-    ).first()
+    p = _resolve_provider(db, provider_id)
     if not p:
         raise HTTPException(status_code=404, detail="Service provider not found")
+    ratings = _rating_stats(db, [p.user_id])
+    jobs = _completed_jobs(db, [p.user_id])
+    return _provider_dict(p, ratings, jobs, viewer=current_user)
+
+
+@router.get("/providers/{provider_id}/reviews")
+def list_provider_reviews(
+    provider_id: int,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=50),
+    current_user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Paginated customer reviews for a service provider (reviewer names masked).
+    """
+    p = _resolve_provider(db, provider_id)
+    if not p:
+        raise HTTPException(status_code=404, detail="Service provider not found")
+
+    query = (
+        db.query(ProviderRating)
+        .filter(ProviderRating.provider_id == p.user_id)
+        .order_by(ProviderRating.created_at.desc(), ProviderRating.id.desc())
+    )
+    total = query.count()
+    rows = query.offset((page - 1) * page_size).limit(page_size).all()
+
     return {
-        "id": p.id,
-        "user_id": p.user_id,
-        "company_name": p.business_name,
-        "business_name": p.business_name,
-        "categories": [p.specialty],
-        "specialty": p.specialty,
-        "service_areas": [s.strip() for s in (p.service_areas or "").split(",") if s.strip()],
-        "hourly_rate": p.hourly_rate,
-        "license_number": p.license_number,
-        "insurance_verified": p.is_verified,
-        "rating_avg": p.rating or 5.0,
-        "completed_jobs_count": 0,
-        "is_available": True,
-        "created_at": p.created_at.isoformat() if hasattr(p.created_at, "isoformat") else str(p.created_at),
-        "user_name": p.user.full_name if p.user else None,
-        "user_email": p.user.email if p.user else None,
-        "user_phone": getattr(p.user, "phone", None) if p.user else None,
+        "items": [
+            {
+                "id": r.id,
+                "provider_id": r.provider_id,
+                "work_order_id": r.work_order_id,
+                "score": r.score,
+                "comment": r.comment,
+                "created_at": r.created_at.isoformat() if hasattr(r.created_at, "isoformat") else str(r.created_at),
+                "reviewer_name": _mask_name(r.reviewer.full_name if r.reviewer else None),
+                "maintenance_title": r.maintenance.title if r.maintenance else None,
+            }
+            for r in rows
+        ],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "rating_avg": round(p.rating, 2) if (p.rating is not None and total > 0) else None,
+        "reviews_count": total,
+    }
+
+
+@router.get("/open-requests")
+def list_open_maintenance_requests(
+    category: Optional[str] = None,
+    city: Optional[str] = None,
+    q: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(12, ge=1, le=50),
+    current_user: User = Depends(require_service_provider),
+    db: Session = Depends(get_db),
+):
+    """
+    Job board: open maintenance tickets service providers can bid on.
+    Privacy-safe projection: no tenant, address or ownership details are exposed.
+    """
+    query = (
+        db.query(Maintenance)
+        .join(Property, Maintenance.property_id == Property.id)
+        .filter(Maintenance.status.notin_(CLOSED_MAINTENANCE_STATUSES))
+    )
+    if category:
+        query = query.filter(Maintenance.category.ilike(f"%{category}%"))
+    if city:
+        query = query.filter(Property.city.ilike(f"%{city}%"))
+    if q:
+        like = f"%{q}%"
+        query = query.filter(Maintenance.title.ilike(like) | Maintenance.description.ilike(like))
+
+    total = query.count()
+    rows = (
+        query.order_by(Maintenance.created_at.desc(), Maintenance.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    ids = [m.id for m in rows]
+    quote_counts: dict = {}
+    my_quotes: dict = {}
+    if ids:
+        quote_counts = dict(
+            db.query(MaintenanceQuote.maintenance_id, func.count(MaintenanceQuote.id))
+            .filter(MaintenanceQuote.maintenance_id.in_(ids))
+            .group_by(MaintenanceQuote.maintenance_id)
+            .all()
+        )
+        my_quotes = {
+            quote.maintenance_id: quote
+            for quote in db.query(MaintenanceQuote).filter(
+                MaintenanceQuote.maintenance_id.in_(ids),
+                MaintenanceQuote.provider_id == current_user.id,
+            ).all()
+        }
+
+    return {
+        "items": [
+            {
+                "id": m.id,
+                "title": m.title,
+                "description": _truncate(m.description),
+                "category": m.category,
+                "priority": m.priority,
+                "status": m.status,
+                "city": m.property.city if m.property else None,
+                "county": m.property.county if m.property else None,
+                "property_type": m.property.property_type if m.property else None,
+                "created_at": m.created_at.isoformat() if hasattr(m.created_at, "isoformat") else str(m.created_at),
+                "quotes_count": int(quote_counts.get(m.id, 0)),
+                "my_quote_id": my_quotes[m.id].id if m.id in my_quotes else None,
+                "my_quote_status": my_quotes[m.id].status if m.id in my_quotes else None,
+                "my_quote_amount": my_quotes[m.id].amount if m.id in my_quotes else None,
+            }
+            for m in rows
+        ],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
     }
 
 
 @router.post("/quotes")
 def submit_maintenance_quote(
     payload: QuoteCreate,
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_service_provider),
     db: Session = Depends(get_db),
 ):
     """
-    Contractor submits a price quote for a reported maintenance issue.
+    Contractor submits a price quote for a maintenance issue listed on the marketplace job board.
     """
     m_id = payload.maintenance_id or payload.request_id
     if not m_id:
         raise HTTPException(status_code=400, detail="Missing maintenance_id or request_id")
-    
+
     amt = payload.amount or payload.quoted_amount
     if not amt:
         raise HTTPException(status_code=400, detail="Missing amount or quoted_amount")
@@ -243,10 +451,8 @@ def submit_maintenance_quote(
     maint = db.query(Maintenance).filter(Maintenance.id == m_id).first()
     if not maint:
         raise HTTPException(status_code=404, detail="Maintenance ticket not found")
-    if current_user.role != "service_provider":
-        raise HTTPException(status_code=403, detail="Only service providers can submit quotes")
-    if not maint.property or not company_resource_access(current_user, maint.property):
-        raise HTTPException(status_code=404, detail="Maintenance ticket not found")
+    if maint.status in CLOSED_MAINTENANCE_STATUSES:
+        raise HTTPException(status_code=400, detail="This maintenance ticket is no longer open for quotes")
 
     quote = MaintenanceQuote(
         maintenance_id=m_id,
@@ -334,6 +540,8 @@ def accept_quote(
         raise HTTPException(status_code=404, detail="Quote not found")
     if current_user.id != maint.property.owner_id and current_user.id != maint.property.manager_id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Only property management can accept quotes")
+    if quote.status != "pending":
+        raise HTTPException(status_code=400, detail=f"Quote is already {quote.status}")
 
     quote.status = "accepted"
     if maint:
@@ -350,6 +558,19 @@ def accept_quote(
     db.commit()
     db.refresh(work_order)
 
+    notif = Notification(
+        recipient_id=quote.provider_id,
+        notification_type="MAINTENANCE",
+        title="Quote Accepted",
+        message=f"Your quote for '{maint.title}' was accepted. A work order is ready for you.",
+        priority="HIGH",
+        related_entity_type="MAINTENANCE",
+        related_entity_id=maint.id,
+    )
+    db.add(notif)
+    db.commit()
+
+    log_audit_event(db, current_user.id, "ACCEPT_MAINTENANCE_QUOTE", "quote", quote.id)
     return {
         "id": work_order.id,
         "request_id": work_order.maintenance_id,
@@ -457,6 +678,7 @@ def dispatch_work_order(
 @router.get("/work-orders/my")
 def get_work_orders(
     status: Optional[str] = None,
+    maintenance_id: Optional[int] = None,
     current_user: User = Depends(require_user),
     db: Session = Depends(get_db),
 ):
@@ -472,7 +694,7 @@ def get_work_orders(
         else Property.company_id == current_user.company_id
     )
     query = query.filter(property_scope)
-    
+
     # If user has service_provider role or is contractor, show theirs
     if current_user.role == "service_provider":
         query = query.filter(MaintenanceWorkOrder.provider_id == current_user.id)
@@ -482,11 +704,29 @@ def get_work_orders(
 
     if status:
         query = query.filter(MaintenanceWorkOrder.status == status)
+    if maintenance_id is not None:
+        query = query.filter(MaintenanceWorkOrder.maintenance_id == maintenance_id)
 
     orders = query.order_by(MaintenanceWorkOrder.created_at.desc()).all()
 
-    return [
-        {
+    order_ids = [o.id for o in orders]
+    review_scores: dict = {}
+    if order_ids:
+        review_scores = dict(
+            db.query(ProviderRating.work_order_id, ProviderRating.score)
+            .filter(ProviderRating.work_order_id.in_(order_ids))
+            .all()
+        )
+
+    results = []
+    for o in orders:
+        prop = o.maintenance.property if (o.maintenance and o.maintenance.property) else None
+        is_management = current_user.role == "admin" or (
+            current_user.role in ("manager", "owner") and prop is not None
+            and current_user.id in {prop.owner_id, prop.manager_id}
+        )
+        has_review = o.id in review_scores
+        results.append({
             "id": o.id,
             "request_id": o.maintenance_id,
             "maintenance_id": o.maintenance_id,
@@ -502,12 +742,94 @@ def get_work_orders(
             "completion_notes": o.completion_notes,
             "notes": o.completion_notes,
             "created_at": o.created_at.isoformat() if hasattr(o.created_at, "isoformat") else str(o.created_at),
-            "updated_at": o.created_at.isoformat() if hasattr(o.created_at, "isoformat") else str(o.created_at),
+            "updated_at": o.updated_at.isoformat() if hasattr(o.updated_at, "isoformat") else str(o.updated_at),
             "property_name": o.maintenance.property.name if (o.maintenance and o.maintenance.property) else "Property",
             "provider_company": o.provider.full_name if o.provider else "Contractor",
-        }
-        for o in orders
-    ]
+            "has_review": has_review,
+            "review_score": review_scores.get(o.id),
+            "can_review": bool(
+                is_management and not has_review and o.status in REVIEWABLE_ORDER_STATUSES
+            ),
+        })
+    return results
+
+
+@router.post("/work-orders/{work_order_id}/review", status_code=201)
+def submit_work_order_review(
+    work_order_id: int,
+    payload: ReviewCreate,
+    current_user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Property management rates a service provider after a completed/verified work order.
+    One review per work order; provider aggregate rating is recomputed.
+    """
+    wo = db.query(MaintenanceWorkOrder).filter(MaintenanceWorkOrder.id == work_order_id).first()
+    if not wo:
+        raise HTTPException(status_code=404, detail="Work order not found")
+    prop = wo.maintenance.property if (wo.maintenance and wo.maintenance.property) else None
+    if not prop or not company_resource_access(current_user, prop):
+        raise HTTPException(status_code=404, detail="Work order not found")
+
+    is_admin = current_user.role == "admin"
+    is_management = current_user.id in {prop.owner_id, prop.manager_id}
+    if not (is_admin or is_management):
+        raise HTTPException(status_code=403, detail="Only property management can review providers")
+    if wo.status not in REVIEWABLE_ORDER_STATUSES:
+        raise HTTPException(status_code=400, detail="Work order must be completed or verified before it can be reviewed")
+    if db.query(ProviderRating).filter(ProviderRating.work_order_id == wo.id).first():
+        raise HTTPException(status_code=409, detail="This work order has already been reviewed")
+
+    comment = (payload.comment or "").strip() or None
+    rating = ProviderRating(
+        provider_id=wo.provider_id,
+        reviewer_id=current_user.id,
+        maintenance_id=wo.maintenance_id,
+        work_order_id=wo.id,
+        score=payload.score,
+        comment=comment,
+    )
+    db.add(rating)
+    db.flush()
+
+    avg, count = (
+        db.query(func.avg(ProviderRating.score), func.count(ProviderRating.id))
+        .filter(ProviderRating.provider_id == wo.provider_id)
+        .first()
+    )
+    profile = db.query(ServiceProviderProfile).filter(ServiceProviderProfile.user_id == wo.provider_id).first()
+    if profile:
+        profile.rating = round(float(avg), 2) if avg is not None else None
+        profile.reviews_count = int(count or 0)
+    db.commit()
+    db.refresh(rating)
+
+    notif = Notification(
+        recipient_id=wo.provider_id,
+        notification_type="MAINTENANCE",
+        title="New Customer Review",
+        message=f"You received a {payload.score}-star review for '{wo.maintenance.title if wo.maintenance else 'a job'}'.",
+        priority="NORMAL",
+        related_entity_type="MAINTENANCE",
+        related_entity_id=wo.maintenance_id,
+    )
+    db.add(notif)
+    db.commit()
+
+    log_audit_event(db, current_user.id, "SUBMIT_PROVIDER_REVIEW", "provider_rating", rating.id)
+    return {
+        "id": rating.id,
+        "provider_id": rating.provider_id,
+        "work_order_id": rating.work_order_id,
+        "maintenance_id": rating.maintenance_id,
+        "score": rating.score,
+        "comment": rating.comment,
+        "created_at": rating.created_at.isoformat() if hasattr(rating.created_at, "isoformat") else str(rating.created_at),
+        "reviewer_name": _mask_name(current_user.full_name),
+        "provider_rating_avg": profile.rating if profile else None,
+        "provider_reviews_count": profile.reviews_count if profile else None,
+    }
 
 
 @router.put("/work-orders/{work_order_id}/status")
@@ -521,6 +843,9 @@ def update_work_order_status(
     """
     Service Provider or Manager updates work order progress (e.g. mark completed with completion notes).
     """
+    if payload.status not in WORK_ORDER_STATUSES:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Allowed: {', '.join(sorted(WORK_ORDER_STATUSES))}")
+
     wo = db.query(MaintenanceWorkOrder).filter(MaintenanceWorkOrder.id == work_order_id).first()
     if not wo:
         raise HTTPException(status_code=404, detail="Work order not found")
@@ -536,6 +861,8 @@ def update_work_order_status(
 
     if not (is_provider or is_admin or is_management):
         raise HTTPException(status_code=403, detail="Not authorized to update this work order")
+    if payload.status == "verified" and not (is_management or is_admin):
+        raise HTTPException(status_code=403, detail="Only property management can verify completed work")
 
     wo.status = payload.status
     if payload.completion_notes:
@@ -547,6 +874,13 @@ def update_work_order_status(
         if wo.maintenance:
             wo.maintenance.status = "resolved"
             wo.maintenance.resolved_at = utc_now()
+    elif payload.status == "verified":
+        wo.verified_by_id = current_user.id
+        wo.verified_at = utc_now()
+    elif payload.status in ("accepted", "in_progress") and wo.maintenance and wo.maintenance.status == "resolved":
+        # Reopening the job reopens the maintenance ticket
+        wo.maintenance.status = "in_progress"
+        wo.maintenance.resolved_at = None
 
     db.commit()
     db.refresh(wo)

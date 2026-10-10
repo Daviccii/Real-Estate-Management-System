@@ -39,8 +39,8 @@ from app.routers import (
     auth, users, properties, favorites, inquiries, admin, manager, units,
     leases, payments, maintenance, notifications, viewings, applications,
     leads, communications, service_marketplace, verifications, audit_logs,
-    owner, agent, tenant, buildings, property_media, companies, companies,
-    email_verification, password_reset, mfa, privacy
+    owner, agent, tenant, buildings, property_media, property_tours, companies, companies,
+    email_verification, password_reset, mfa, privacy, reports, analytics
 )
 from app.observability.metrics import snapshot, timed_call
 from app.services.rate_limiter import allow_request
@@ -368,11 +368,14 @@ app.include_router(agent.router, prefix="/api/v1", tags=["agent"])
 app.include_router(tenant.router, prefix="/api/v1", tags=["tenant"])
 app.include_router(buildings.router, prefix="/api/v1", tags=["buildings"])
 app.include_router(property_media.router, prefix="/api/v1", tags=["property-media"])
+app.include_router(property_tours.router, prefix="/api/v1", tags=["property-tours"])
 app.include_router(companies.router, prefix="/api/v1", tags=["companies"])
 app.include_router(email_verification.router, prefix="/api/v1", tags=["email-verification"])
 app.include_router(password_reset.router, prefix="/api/v1", tags=["auth"])
 app.include_router(mfa.router, prefix="/api/v1", tags=["auth"])
 app.include_router(privacy.router, prefix="/api/v1", tags=["privacy"])
+app.include_router(reports.router, prefix="/api/v1", tags=["reports"])
+app.include_router(analytics.router, prefix="/api/v1", tags=["analytics"])
 
 
 # ============================================================================

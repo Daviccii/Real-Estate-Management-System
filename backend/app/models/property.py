@@ -74,3 +74,9 @@ class Property(Base):
         cascade="all, delete-orphan",
         lazy="noload",
     )
+    tours = relationship(
+        "PropertyTour",
+        back_populates="property",
+        cascade="all, delete-orphan",
+        lazy="noload",
+    )

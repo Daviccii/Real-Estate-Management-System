@@ -18,6 +18,8 @@ class ServiceProviderProfile(Base):
     years_experience = Column(Integer, nullable=True, default=1)
     is_verified = Column(Boolean, nullable=False, default=False)
     rating = Column(Float, nullable=True, default=5.0)
+    reviews_count = Column(Integer, nullable=False, default=0)
+    is_available = Column(Boolean, nullable=False, default=True)
     bio = Column(Text, nullable=True)
     service_areas = Column(String(255), nullable=True)  # Cities or counties served
     

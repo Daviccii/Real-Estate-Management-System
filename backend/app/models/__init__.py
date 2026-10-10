@@ -3,6 +3,7 @@ from app.models.user import User
 from app.models.property import Property
 from app.models.property_source import PropertySource
 from app.models.property_media import PropertyMedia
+from app.models.property_tour import PropertyTour
 from app.models.building import Building
 from app.models.favorite import Favorite
 from app.models.inquiry import Inquiry
@@ -22,6 +23,7 @@ from app.models.verification_evidence import VerificationEvidence
 from app.models.owner_expense import OwnerExpense
 from app.models.provider_invoice import ProviderInvoice
 from app.models.provider_rating import ProviderRating
+from app.models.audit_chain_state import AuditChainState
 from app.models.audit_log import AuditLog
 from app.models.inspection import InspectionRecord
 from app.models.role_profiles import TenantProfile, OwnerProfile, AgentProfile, ManagerProfile
@@ -39,6 +41,7 @@ __all__ = [
     "Property",
     "PropertySource",
     "PropertyMedia",
+    "PropertyTour",
     "Building",
     "Favorite",
     "Inquiry",
@@ -63,6 +66,7 @@ __all__ = [
     "OwnerExpense",
     "ProviderInvoice",
     "ProviderRating",
+    "AuditChainState",
     "AuditLog",
     "InspectionRecord",
     "TenantProfile",

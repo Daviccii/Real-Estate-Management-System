@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 from app.database.database import get_db
 from app.auth.roles import require_admin
 from app.models.audit_log import AuditLog
+from app.services.audit_chain import verify_audit_chain
 
 router = APIRouter(prefix="/audit-logs", tags=["audit-logs"], dependencies=[Depends(require_admin)])
 
@@ -20,9 +21,22 @@ class AuditLogOut(BaseModel):
     entity_id: Optional[int]
     ip_address: Optional[str]
     details_json: Optional[str]
+    prev_hash: Optional[str] = None
+    entry_hash: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AuditChainVerificationOut(BaseModel):
+    verified: bool
+    entries_checked: int
+    root: Optional[Dict[str, Any]] = None
+    first_entry_id: Optional[int] = None
+    last_entry_id: Optional[int] = None
+    tip_hash: Optional[str] = None
+    first_broken: Optional[Dict[str, Any]] = None
+    checked_at: datetime
 
 
 @router.get("/", response_model=List[AuditLogOut])
@@ -51,3 +65,14 @@ def get_audit_logs(
             item.actor_name = l.actor.full_name or l.actor.email
         out.append(item)
     return out
+
+
+@router.get("/chain/verify", response_model=AuditChainVerificationOut)
+def verify_chain(db: Session = Depends(get_db)):
+    """
+    Recompute the tamper-evident hash chain over every audit entry and report
+    the first deviation (if any): edited row, deleted row, reordered row, or
+    entry written outside the chained insert path. Retention-declared prunes
+    (AUDIT_CHAIN_ANCHOR entries) are accepted. Administrator only.
+    """
+    return verify_audit_chain(db)
