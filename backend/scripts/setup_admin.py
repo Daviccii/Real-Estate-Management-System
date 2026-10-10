@@ -24,10 +24,14 @@ def setup_admin():
         else:
             print(f"Old admin not found: {old_admin_email}")
 
-        # Create new admin
-        new_admin_email = 'kebirogabriel@gmail.com'
-        new_admin_password = 'onsomuRiley2022'
-        new_admin_name = 'Gabriel Onsomu'
+        # Create new admin — credentials come from the environment so no
+        # plaintext password ever lives in source control.
+        new_admin_email = os.environ.get('ADMIN_EMAIL')
+        new_admin_password = os.environ.get('ADMIN_PASSWORD')
+        new_admin_name = os.environ.get('ADMIN_NAME', 'Administrator')
+        if not new_admin_email or not new_admin_password:
+            print('Error: ADMIN_EMAIL and ADMIN_PASSWORD environment variables are required.')
+            sys.exit(1)
         
         # Check if new admin already exists
         existing_admin = db.query(User).filter(User.email == new_admin_email).first()
