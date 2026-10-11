@@ -1,6 +1,6 @@
 # Deployment Guide — PropNoxa Real Estate Management System
 
-Status snapshot: 2026-10-11, `main` at `7b17e32` (all of Priority 1–4 pushed and green).
+Status snapshot: 2026-10-11, `main` includes the deployment-readiness batch (alerting, internal penetration test, load test, gap closure) — all pushed and green.
 This guide is the operational companion to `SECURITY_IMPROVEMENTS.md`.
 
 Legend: `[x]` done and verified in the repo · `[~]` repo-side ready, needs infrastructure to complete · `[ ]` not yet done.
@@ -13,17 +13,17 @@ Legend: `[x]` done and verified in the repo · `[~]` repo-side ready, needs infr
 
 - [x] **All Priority 1 critical issues resolved** — P1–P4 complete. The only P1 skip is CSRF, deliberately skipped and documented (JWT bearer API, no cookie-based auth for state changes).
 - [x] **Security audit completed** — this program of work; `SECURITY_IMPROVEMENTS.md` is the source of truth (MFA, rate limiting, lockout, uploads hardening, GDPR, audit chain, etc.).
-- [ ] **Penetration testing** — not performed. Automated gates are green (bandit medium+, `pip-audit` advisory, `npm audit` blocking at high+ for prod deps); recommend an external engagement before public launch.
-- [ ] **Load testing** — not performed. Perf work done (Redis cache-aside, read-replica routing, pool tuning, indexed hot paths); recommend k6 or Locust against the staging stack before launch.
+- [x] **Penetration testing** — internal attacker-minded suite performed (`backend/tests/test_pentest.py`, 51 tests: SQLi, JWT forgery, mass assignment, IDOR, upload bypass, webhook forgery, pagination abuse, info disclosure). It found and fixed unbounded pagination on 43 endpoints and a vacuous legacy IDOR test; everything else held. An external engagement is still recommended before public launch.
+- [x] **Load testing** — performed on the dev machine (`backend/scripts/load_test.py`): 0 errors / 0 5xx across 4,792 requests up to 100 concurrent users; dev-box ceiling ~45–62 RPS, SQLite-bound. Re-run the same script against the staging stack (`--base-url https://staging-api --users 100`) after infra is provisioned; it exits non-zero on any error, so it can gate a deploy.
 - [x] **Database backups configured** — verified dumps, retention with a floor, optional secondary copy, WAL archiving + documented PITR plan, restore-drill tooling (`backend/scripts/backup_database.py`, `backend/scripts/restore_database.py`), and a `db-backup` daemon service in `docker-compose.yml`.
-- [x] **Monitoring configured** — `/health/live`, `/health/ready`, `/health/metrics` (uptime, error rates, counters, system info), structured JSON logs to stdout (CloudWatch-ready), `security` event stream, `X-Request-ID` on every line. Sentry/APM integration pending.
-- [ ] **Alerting configured** — no PagerDuty/Datadog wiring yet. Interim: CloudWatch alarms on 5xx rate, p95 latency, disk, and a poller on `/health/metrics`.
+- [x] **Monitoring configured** — `/health/live`, `/health/ready`, `/health/metrics` (uptime, error rates, counters, system info), structured JSON logs to stdout (CloudWatch-ready), `security` event stream, `X-Request-ID` on every line. Datadog APM agents remain an infrastructure addition.
+- [x] **Alerting configured** — application-layer fan-out to PagerDuty / Datadog / Sentry via `ALERT_BACKENDS` (console default; each provider fails closed without credentials). The 5xx handler and critical security events page automatically with dedup keys. Set the provider credentials (§4) and the alerts flow; interim CloudWatch alarms remain a useful backstop.
 - [ ] **SSL/TLS certificates** — infrastructure step (ACM / Cloudflare edge). App already honors `--proxy-headers`.
 - [ ] **DNS configured** — infrastructure step.
 - [ ] **CDN configured** — infrastructure step; build artifacts are ready (hashed filenames, immutable caching support).
 - [~] **Secrets management configured** — every secret is env-based, `.env` is gitignored/untracked, `backend/.env.example` + `backend/scripts/generate_secrets.py` exist. A production secrets manager (AWS Secrets Manager or equivalent) still needs provisioning. **The leaked admin password must be rotated (see §6).**
 - [x] **CI/CD pipeline tested** — `.github/workflows/ci.yml` runs on push (5 jobs, see §3); `deploy.yml` is a dispatch-based promotion that re-runs CI as the gate. The Docker build job runs on GitHub runners — check the Actions tab; it has never executed on the dev machine (no Docker daemon).
-- [~] **Staging environment tested** — promotion workflow + GitHub Environments exist; real staging infra is not provisioned. Closest stand-in today: the full `docker-compose` stack (Postgres + Redis + API + worker + backups).
+- [~] **Staging environment tested** — promotion workflow + GitHub Environments exist; real staging infra is not provisioned. Closest stand-in today: the full `docker-compose` stack (Postgres + Redis + API + worker + backups + retention).
 - [x] **Data migration plan tested** — Alembic chain runs via the container `release` step (`entrypoint.sh` → `alembic upgrade head`), gated in compose by the `migrate` service. Backup-first pattern used for every dev-DB migration; the full chain replays on Postgres (one pre-existing Postgres-only migration means SQLite dev DBs must stamp past it — the full chain is a non-issue on Postgres).
 - [~] **Rollback plan tested** — see §5. App rollback is image/dist swap; DB rollback is downgrade or restore + PITR; audit-chain verification re-run after any restore. Rehearse once on staging before launch.
 - [x] **Incident response plan documented** — see §6.
@@ -34,7 +34,7 @@ Legend: `[x]` done and verified in the repo · `[~]` repo-side ready, needs infr
 - [ ] **Secrets injected** — from the secrets manager into container env at deploy time (full list in §4).
 - [ ] **Application deployed** — commands are ready (§2), but `deploy.yml` deploy steps are placeholders until a hosting target is chosen.
 - [x] **Health checks passing** — `/health/live` (liveness; also the Docker `HEALTHCHECK`), `/health/ready` (readiness, checks DB), `/health/metrics` (operational metrics).
-- [~] **Smoke tests passing** — 264 backend + 263 frontend tests green pre-push; production smoke checklist in §2.
+- [~] **Smoke tests passing** — 328 backend (+1 skipped) + 263 frontend tests green pre-push; production smoke checklist in §2.
 - [ ] **Monitoring verified / Alerts verified / DNS switched / SSL verified / Performance verified** — infrastructure steps, perform on launch day in this order.
 
 ### Post-Deployment
@@ -71,8 +71,9 @@ Legend: `[x]` done and verified in the repo · `[~]` repo-side ready, needs infr
                     │ Redis (ElastiCache)  │  REDIS_URL (rate limiting, lockout, revocation)
                     └──────────────────────┘
 
-Monitoring: Datadog APM (pending) · Sentry (pending) · CloudWatch Logs (ready:
-JSON stdout) · PagerDuty alerting (pending; interim CloudWatch alarms)
+Monitoring: Datadog APM (agent — infrastructure) · Sentry (wired, needs DSN) ·
+CloudWatch Logs (ready: JSON stdout) · PagerDuty/Datadog/Sentry alerts (wired
+at the app layer, credentials via env)
 ```
 
 Mapping to this codebase:
@@ -85,8 +86,11 @@ Mapping to this codebase:
 | PostgreSQL | SQLAlchemy + Alembic, pool sizing envs, `DATABASE_REPLICA_URL` read routing for public property endpoints | RDS Multi-AZ + read replica; `pg_dump` client major must match server (image ships v16 — match if you upgrade) |
 | Redis | cache-aside + rate limit + account lockout + token revocation, graceful broken-Redis passthrough | ElastiCache; set `REDIS_URL` |
 | Worker | `python -m app.worker` (compose `worker` service) | Long-running task container |
+| Retention | `scripts/run_retention.py --daemon` (compose `retention` service, `RETENTION_INTERVAL_HOURS`) | Nothing — runs out of the box; legal hold via `LEGAL_HOLD_ENABLED` |
+| Uploads | `media_uploads` named volume at `/app/uploads` (api + worker) | Bind to durable storage if the orchestrator does not support named volumes |
 | Backups | `db-backup` daemon (dumps + retention + verify + WAL), `--pitr-plan` | Secondary copy to a bucket (`BACKUP_SECONDARY_DIR`) |
-| Monitoring | JSON logs, `/health/metrics`, `security` event stream | Datadog/Sentry SDKs (pending), CloudWatch log shipping (container stdout), PagerDuty route |
+| Monitoring | JSON logs, `/health/metrics`, `security` event stream | Datadog/Sentry agents (infrastructure), CloudWatch log shipping (container stdout) |
+| Alerting | `ALERT_BACKENDS` fan-out → PagerDuty/Datadog/Sentry (app layer, fail-closed) | Provider accounts + credentials in the secrets manager |
 
 ---
 
@@ -124,9 +128,11 @@ From `backend/app/config/settings.py`; template in `backend/.env.example`.
 | `EMAIL_BACKEND` / `SMTP_*` | `smtp` + relay credentials (fails fast if host missing) |
 | `SMS_BACKEND` | `console` or `twilio` (twilio needs provider creds) |
 | `PAYMENT_GATEWAY` | **`mock` is rejected in production.** Choose `stripe`/`paypal`/`mpesa` and set `PAYMENT_WEBHOOK_SECRET`, or leave payments off |
-| `LEGAL_HOLD_ENABLED` / `RETENTION_*` | retention windows and litigation hold |
+| `LEGAL_HOLD_ENABLED` / `RETENTION_*` | retention windows, litigation hold, and `RETENTION_INTERVAL_HOURS` (retention daemon cadence) |
 | `BACKUP_*` | backup dir, retention, secondary copy, WAL archive, physical base backups |
-| `UPLOAD_DIR` / `DOCUMENTS_DIR` | **mount persistent storage** — containers have no volume for these in `docker-compose.yml` today |
+| `ALERT_BACKENDS` | comma-separated: `console`, `pagerduty`, `datadog`, `sentry` (default `console`) |
+| `PAGERDUTY_ROUTING_KEY` / `DATADOG_API_KEY` / `DATADOG_SITE` / `SENTRY_DSN` | provider credentials — each backend fails closed until its credential is set |
+| `UPLOAD_DIR` / `DOCUMENTS_DIR` | defaults land on the `media_uploads` volume in compose; set explicitly if you mount storage elsewhere |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` | only for the one-shot `scripts/setup_admin.py`; never store in code |
 
 Frontend build-time: `VITE_API_BASE` (e.g. `https://api.your-domain.com`) — baked into `dist/` at `npm run build`.
@@ -139,9 +145,9 @@ Frontend build-time: `VITE_API_BASE` (e.g. `https://api.your-domain.com`) — ba
 
 ```bash
 # 1. Backend
-docker compose build api worker db-backup
+docker compose build api worker db-backup retention
 docker compose run --rm migrate            # alembic upgrade head
-docker compose up -d api worker db-backup
+docker compose up -d api worker db-backup retention
 
 # 2. Frontend
 VITE_API_BASE=https://api.your-domain.com npm ci && npm run build
@@ -153,11 +159,14 @@ curl -fsS https://api.your-domain.com/health/ready
 curl -fsS https://api.your-domain.com/health/metrics
 python backend/scripts/verify_audit_chain.py     # expect {"verified": true, ...}
 python backend/scripts/backup_database.py --status
+
+# 4. (Optional, staging) load-test the deployed stack — exits non-zero on any error
+python backend/scripts/load_test.py --base-url https://api.your-domain.com --users 50 --duration 60 --allow-login-fail
 ```
 
 Smoke tests after deploy: register/login (MFA challenge if enabled), public property listing + detail, AI match endpoint, one authenticated CRUD (e.g. create draft property), audit-logs chain verify (admin), `manifest.webmanifest` reachable via the CDN.
 
-Operational crons: daily `scripts/run_retention.py` (prints a JSON report; honors legal hold), then `scripts/verify_audit_chain.py` to confirm pruning anchors kept the chain intact.
+Operational crons: the `retention` compose service runs `run_retention.py --daemon` daily (honors legal hold); pair with a daily `scripts/verify_audit_chain.py` to confirm pruning anchors kept the chain intact.
 
 ### Rollback
 
@@ -188,11 +197,9 @@ Branch → fix → push → CI gates → dispatch `deploy.yml` → green promoti
 ## 7. Outstanding manual actions before production
 
 1. **Rotate the leaked admin password** (`kebirogabriel@gmail.com`) — still in git history, un-rotated as of 2026-10-11.
-2. Provision a secrets manager and inject the §4 variables.
+2. Provision a secrets manager and inject the §4 variables (including the alerting provider credentials if you want alerts off `console`).
 3. Choose the hosting target and fill in `deploy.yml` deploy commands; protect the `production` environment with reviewers.
 4. Decide payments: real gateway credentials or leave `PAYMENT_GATEWAY` off (mock is rejected in production).
 5. Real SMTP relay credentials (`EMAIL_BACKEND=smtp`).
-6. Mount persistent volumes for `UPLOAD_DIR` / `DOCUMENTS_DIR` (property media, generated PDFs).
-7. Schedule `run_retention.py` + `verify_audit_chain.py` (daily), and `backup_database.py --daemon` is already containerized.
-8. Commission penetration testing and load testing before public launch.
-9. Wire alerting (Datadog/Sentry/PagerDuty or interim CloudWatch alarms).
+6. Create the monitoring-side accounts/routes (PagerDuty service + routing key, Datadog API key/agent, Sentry project DSN) and set `ALERT_BACKENDS` to `pagerduty,datadog,sentry` (or your subset).
+7. Re-run `scripts/load_test.py` against the deployed staging stack and record the numbers; commission an external penetration test before public launch.

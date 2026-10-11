@@ -1302,6 +1302,93 @@ The chain is tamper-**evident**, not tamper-**proof**: an attacker with both dat
 
 ---
 
+## Alerting — PagerDuty / Datadog / Sentry (COMPLETED)
+
+The monitoring stack from the deployment architecture is now wired at the application layer (`app/services/alert_service.py`).
+
+### Design
+
+- Pluggable fan-out behind `ALERT_BACKENDS` (comma-separated: `console`, `pagerduty`, `datadog`, `sentry`); `console` is the safe default. Each provider backend **fails closed** with an error log when its credential is missing (`PAGERDUTY_ROUTING_KEY`, `DATADOG_API_KEY` + `DATADOG_SITE`, `SENTRY_DSN`) and is a no-op until enabled — nothing crashes, nothing is silently dropped.
+- `emit_alert(title, *, severity, details, dedup_key)` never raises: a single `_post_json` transport (httpx, 5-second timeout) swallows network errors and returns a bool, so alerting can never take down a request path.
+- Provider payloads follow each vendor API: PagerDuty Events API v2 (`trigger` + `dedup_key` + normalized severity on their 4-level scale, application `"high"` maps to `"error"`), Datadog Events v1 (`DD-API-KEY` header, EU site support via `DATADOG_SITE`, `aggregation_key` from `dedup_key`), Sentry Store API (DSN parsed to the store endpoint, `X-Sentry-Auth`, `critical` → `fatal`).
+
+### Wiring
+
+- The global exception handler in `app/main.py` emits an alert for every unhandled exception (severity `critical` for `OperationalError` — the DB-down signature), deduplicated per exception-type + path so a failing endpoint pages once, not per request.
+- `emit_security_event(..., severity="high"/"critical")` forwards to the alert backends automatically (e.g. audit-chain-broken, webhook signature attacks), while `info`/`warning` events stay log-only — alerts page a human, logs record history.
+- `docker-compose.yml` passes `ALERT_BACKENDS`, `PAGERDUTY_ROUTING_KEY`, `DATADOG_API_KEY`, `DATADOG_SITE`, `SENTRY_DSN` through to the api service; `.env.example` documents them.
+
+### Tests (13 in `tests/test_alerting.py`)
+
+Console default; unknown backend ignored; transport failure never raises (monkeypatched `httpx.post`); fail-closed without credentials for each provider; exact payload/URL/header shapes for PagerDuty, Datadog (EU site) and Sentry; malformed DSN refused; the 5xx handler emits one alert with the right dedup key; critical security events forward; info events do not page.
+
+### Acknowledged gap
+
+Redis-backed account lockout and rate limiting fail open when Redis is unavailable (in-process fallback). With Redis in the compose stack this only matters during a Redis outage — which itself should be alerted on (infrastructure monitor: ElastiCache availability). Documented in `DEPLOYMENT.md`.
+
+---
+
+## Internal Penetration Testing (COMPLETED)
+
+Authorized attacker-minded suite (`tests/test_pentest.py`, 51 tests) run against the application through the same isolated-DB TestClient as the rest of the suite. Each test asserts the exploit fails safely — no auth bypass, no data leak, no 500.
+
+### Coverage
+
+- **Injection:** six SQLi payloads through login (all rejected — 400/401/422, no token, no 500) and through public property search/city/type filters against an empty table (a successful injection would fabricate rows — none do); JSON operator injection (`{"$gt": ""}`) rejected by schema validation. Search patterns are bound parameters via SQLAlchemy `ilike`, verified in code.
+- **JWT:** `alg=none` forgery, wrong-key signing, tampered payload with the original signature, expired tokens, refresh-token-as-access-token, token for a nonexistent user, and garbage/malformed Authorization headers — all 401.
+- **Mass assignment / privilege escalation:** public registration of `admin`/`manager` → 403 (case variants → 422 at schema validation); `/api/users/register` forces `role="user"` even when the client sends `admin`; admin-only user creation returns 401/403 for anon/tenant; non-admin role changes → 403.
+- **IDOR:** payments, invoices, lease documents and leases belonging to another tenant → 403/404 (with a positive control proving owners can read their own).
+- **Uploads:** PE/ELF/HTML/markup content disguised as images rejected by magic bytes regardless of filename; a valid PNG under `evil.php` is stored under a random 32-hex name and served `image/png` with `nosniff`; path traversal names on the media route → 404; oversize files → 400.
+- **Webhooks:** missing and forged signatures → 400 (HMAC fail-closed).
+- **Pagination abuse:** `limit=0/-1/100000/10^19`, `skip=-1` → 422 on public and authenticated lists.
+- **Information disclosure:** security headers present on every response; `/health/ready` leaks no connection strings or config; 404/422 bodies are generic (no tracebacks).
+
+### Findings fixed in this pass
+
+1. **Unbounded pagination (43 endpoints, 9 routers)** — raw `skip: int = 0, limit: int = 100` parameters accepted `limit=-1` (unlimited in SQL semantics) or arbitrarily large values straight into SQLAlchemy. Fixed with shared `SkipParam`/`LimitParam` annotated types (`app/utils/pagination.py`) enforcing `skip >= 0` and `1 <= limit <= MAX_PAGE_SIZE` (500) at the HTTP layer; regression-guarded by pentest tests.
+2. **A vacuous legacy IDOR test** (`tests/test_role_isolation_and_security.py`) requested `/api/leases/{id}` without the `/v1` prefix — it 404'd on route resolution, so the assertion passed without ever exercising the authorization check. Path corrected; the check now runs (and the same coverage is duplicated in the pentest suite).
+
+### Residual risks (accepted, documented)
+
+- Search `%`-wildcards can force table scans on large datasets (bounded by pagination; mitigated by Postgres indexes + read replica).
+- Rate limiting/lockout depend on Redis (see alerting section).
+- The audit-chain key boundary (DB access + key = full forgery) as documented in the audit-chain section.
+
+---
+
+## Load Testing & Concurrency Verification (COMPLETED)
+
+`scripts/load_test.py` (asyncio + httpx, no new dependencies) drives a locally running uvicorn with concurrent virtual users against a throwaway seeded SQLite database — never the dev DB, never production.
+
+### Results on this development machine (2026-10-10, Windows, SQLite, mixed read + login traffic)
+
+| Workers | Users | Duration | Requests | RPS | p50 | p95 | p99 | Errors | 5xx |
+|---------|-------|----------|----------|-----|-----|-----|-----|--------|-----|
+| 1 | 20 | 30 s | 1,524 | 50.4 | 369 ms | 596 ms | 1,624 ms | 0 | 0 |
+| 1 | 50 | 20 s | 916 | 43.6 | 1,006 ms | 2,418 ms | 3,243 ms | 0 | 0 |
+| 4 | 50 | 20 s | 1,258 | 62.1 | 490 ms | 2,643 ms | 4,116 ms | 0 | 0 |
+| 4 | 100 | 20 s | 1,094 | 50.6 | 1,430 ms | 5,251 ms | 8,189 ms | 0 | 0 |
+
+- **Zero errors, zero timeouts, zero 5xx across 4,792 requests**, including 100 concurrent users — the application degrades by latency, never by failure. Server logs show no tracebacks and no SQLite lock contention.
+- Throughput ceiling on this box is ~45–62 RPS and is **SQLite-bound** (a single database file serializes I/O; additional workers barely help). Production runs PostgreSQL (+ optional read replica) with Redis and 4 uvicorn workers, where the bottleneck shifts to scalable infrastructure; treat these numbers as a floor, not the production ceiling.
+- The scenario mix includes authenticated-adjacent work (bcrypt login per 12 requests) which is intentionally CPU-heavy — deliberately part of the mix.
+
+### Honest caveats
+
+Dev-machine numbers cannot predict production capacity. The load test's real value is the **zero-error result under concurrency** (no race conditions, no connection-pool exhaustion, no unhandled 500s) plus a reusable script to re-run against staging: `python scripts/load_test.py --base-url https://staging-api --users 100 --duration 60` (exit code non-zero on any error — usable as a deploy gate).
+
+---
+
+## Deployment Gap Closure (COMPLETED)
+
+Three production gaps found during the readiness sweep, all fixed:
+
+1. **Uploads were container-local.** Property media and cached PDFs (`UPLOAD_DIR`/`DOCUMENTS_DIR`, defaulting under `/app/uploads`) had no volume — every rebuild lost user uploads and multiple/scaled API containers served disjoint copies. Added a named `media_uploads` volume mounted at `/app/uploads` on both the `api` and `worker` services, plus a `mkdir + chown appuser` step in the Dockerfile so the volume initializes writable by the non-root user.
+2. **Dev databases were baked into production images.** `.dockerignore` missed `*.db`/`*.sqlite*` (and `backups/`/`uploads/`), so `COPY . .` embedded local SQLite files into the image. Excluded now.
+3. **Retention was never scheduled.** `scripts/run_retention.py` existed but nothing ran it — GDPR storage-limitation purges would never execute in a deployed stack. It now has `--once` (cron) and `--daemon` (`RETENTION_INTERVAL_HOURS`, default 24 h) modes mirroring the backup daemon, a compose `retention` service wired to the migrate dependency, and `.env.example`/settings entries. Smoke-tested against a throwaway DB (`{"auth_tokens_purged": 0, ...}`).
+
+---
+
 ## Known Limitations
 
 1. **Email Service:** Implemented — SMTP transport with branded HTML/text templates, preference-gated notification fan-out, and console fallback for dev. Production only needs `EMAIL_BACKEND=smtp` + relay credentials from a secrets manager. (SendGrid HTTP API integration remains optional future work; SMTP covers SES/Mailgun relays.)
@@ -1329,6 +1416,7 @@ For questions or issues:
 ## Changelog
 
 ### October 11, 2026
+- Completed the deployment-readiness batch: **alerting**, **internal penetration testing**, **load testing**, and **deployment gap closure** — see the four new sections above. Highlights: PagerDuty/Datadog/Sentry alert backends behind `ALERT_BACKENDS` (console default, fail-closed, never-raise; 5xx handler + critical security events page automatically; 13 tests); 51-test attacker-minded pentest suite that found and fixed **unbounded pagination on 43 endpoints** (`limit=-1` reached SQL) and **a vacuous legacy IDOR test**, with everything else holding (JWT forgery/tamper/alg-none, SQLi, mass assignment, IDOR on payments/invoices/leases, upload magic-byte bypass + traversal, webhook forgery, pagination abuse — all closed); HTTP load test showing **0 errors / 0 5xx across 4,792 requests up to 100 concurrent users** on a single dev box (SQLite-bound ceiling ~45–62 RPS; production is Postgres + Redis + 4 workers); uploads now on a named `media_uploads` volume, dev DBs excluded from Docker images, and the retention daemon scheduled in compose. Backend **328 tests + 1 skipped**, frontend **263 tests / 39 files** green, typecheck clean.
 - Added `DEPLOYMENT.md` — deployment runbook mapping the launch checklist to the repo state (CI/CD gates, backup/PITR tooling, health + metrics endpoints, secret inventory, compose reference stack), the recommended CDN → ALB → API → RDS/Redis architecture with per-component gaps, a rollback procedure (image swap, migration downgrade, restore + audit-chain re-verify), and an incident-response quick guide; outstanding manual actions tracked (admin password rotation, secrets manager, hosting choice, payment gateway, SMTP, upload volumes, alerting, pen/load testing)
 
 ### October 10, 2026
