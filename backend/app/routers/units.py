@@ -8,6 +8,7 @@ from typing import List, Optional
 
 from app.schemas.unit import UnitCreate, UnitUpdate, UnitOut
 from app.database.database import get_db
+from app.utils.pagination import SkipParam, LimitParam
 from app.auth.deps import get_current_user
 from app.auth.roles import verify_role, require_admin, require_management
 from app.repositories.unit_repo import (
@@ -87,8 +88,8 @@ def list_units(
 @router.get("/properties/{property_id}/units", response_model=List[UnitOut])
 def list_property_units(
     property_id: int,
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     status: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

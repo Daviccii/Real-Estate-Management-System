@@ -12,6 +12,8 @@ from typing import Any, Dict, Optional
 
 from fastapi import Request
 
+from app.services.alert_service import emit_alert
+
 security_logger = logging.getLogger("security")
 
 _REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
@@ -63,3 +65,13 @@ def emit_security_event(
         payload["details"] = details
     level = getattr(logging, severity.upper(), logging.WARNING)
     security_logger.log(level, event, extra={"security": payload})
+
+    # High-severity security events also fan out to the alerting backends
+    # (PagerDuty/Datadog/Sentry/console) so they page a human, not just log.
+    if severity.lower() in ("high", "critical"):
+        emit_alert(
+            event,
+            severity=severity,
+            details=payload,
+            dedup_key=f"security:{event}",
+        )

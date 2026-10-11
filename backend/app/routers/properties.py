@@ -17,6 +17,7 @@ from app.repositories.property_repo import (
 )
 from app.models.user import User
 from app.models.property import Property
+from app.utils.pagination import SkipParam, LimitParam
 from app.services.audit_service import log_audit_event
 from app.services.matching_service import rank_properties
 from app.services.cache_service import (
@@ -82,8 +83,8 @@ def create(
 
 @router.get("/", response_model=List[PropertyOut])
 def list_props(
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     search: Optional[str] = None,
     property_type: Optional[str] = None,
     city: Optional[str] = None,
@@ -105,8 +106,8 @@ def list_props(
 
 @router.get("/public", response_model=List[PropertyOut], tags=["public"])
 def list_public(
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     search: Optional[str] = None,
     property_type: Optional[str] = None,
     city: Optional[str] = None,

@@ -101,5 +101,14 @@ docker-compose.dev.yml
 .gitlab-ci.yml
 .travis.yml
 
+# Local databases and runtime data: never bake dev data into the image.
+# uploads/ and backups/ are mounted volumes at runtime, not image content.
+*.db
+*.db.bak*
+*.sqlite
+*.sqlite3
+backups/
+uploads/
+
 # Migrations (optional - exclude if you want them in image)
 # migrations/

@@ -65,6 +65,15 @@ services:
       RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
       RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-120}
       REDIS_URL: redis://redis:6379/0
+      ALERT_BACKENDS: ${ALERT_BACKENDS:-console}
+      PAGERDUTY_ROUTING_KEY: ${PAGERDUTY_ROUTING_KEY:-}
+      DATADOG_API_KEY: ${DATADOG_API_KEY:-}
+      DATADOG_SITE: ${DATADOG_SITE:-datadoghq.com}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    volumes:
+      # Property media uploads and cached PDFs must survive container
+      # rebuilds and be shared across api/worker instances.
+      - media_uploads:/app/uploads
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -80,6 +89,8 @@ services:
       DEBUG: "false"
       DATABASE_URL: postgresql://${POSTGRES_USER:-real_estate}:${POSTGRES_PASSWORD:-change-this-local-password}@postgres:5432/${POSTGRES_DB:-real_estate}
       SECRET_KEY: ${SECRET_KEY:-replace-this-with-a-random-secret-at-least-32-characters}
+    volumes:
+      - media_uploads:/app/uploads
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -108,8 +119,26 @@ services:
         condition: service_completed_successfully
     command: ["admin", "python", "scripts/backup_database.py", "--daemon"]
 
+  retention:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-real_estate}:${POSTGRES_PASSWORD:-change-this-local-password}@postgres:5432/${POSTGRES_DB:-real_estate}
+      SECRET_KEY: ${SECRET_KEY:-replace-this-with-a-random-secret-at-least-32-characters}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      RETENTION_INTERVAL_HOURS: ${RETENTION_INTERVAL_HOURS:-24}
+      LEGAL_HOLD_ENABLED: ${LEGAL_HOLD_ENABLED:-false}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    command: ["admin", "python", "scripts/run_retention.py", "--daemon"]
+
 volumes:
   postgres_data:
   redis_data:
   db_backups:
   pg_wal_archive:
+  media_uploads:

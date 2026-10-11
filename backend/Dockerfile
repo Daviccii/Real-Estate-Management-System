@@ -59,6 +59,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create non-root user for security (12-factor: principle of least privilege)
 RUN useradd -m -u 1000 appuser
 
+# Upload directory exists in the image with appuser ownership so that a named
+# volume mounted here (docker-compose media_uploads) inherits writable perms
+# instead of being initialized root-owned.
+RUN mkdir -p /app/uploads && chown -R appuser:appuser /app/uploads
+
 # Copy Python packages from builder
 COPY --from=builder /root/.local /home/appuser/.local
 

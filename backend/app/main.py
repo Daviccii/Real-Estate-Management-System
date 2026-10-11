@@ -44,6 +44,7 @@ from app.routers import (
 )
 from app.observability.metrics import snapshot, timed_call
 from app.services.rate_limiter import allow_request
+from app.services.alert_service import emit_alert
 
 # Initialize logging (12-factor: logs to stdout)
 setup_logging(
@@ -392,6 +393,17 @@ async def global_exception_handler(request: Request, exc: Exception):
             "path": request.url.path,
             "method": request.method,
         }
+    )
+
+    emit_alert(
+        f"Unhandled exception: {type(exc).__name__}",
+        severity="critical" if isinstance(exc, OperationalError) else "error",
+        details={
+            "path": request.url.path,
+            "method": request.method,
+            "exception": type(exc).__name__,
+        },
+        dedup_key=f"exc:{type(exc).__name__}:{request.url.path}",
     )
     
     # Database connection details must not be sent to browsers, even in

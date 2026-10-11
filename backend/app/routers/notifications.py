@@ -10,6 +10,7 @@ from typing import List, Optional
 from pydantic import BaseModel, ConfigDict
 
 from app.database.database import get_db
+from app.utils.pagination import SkipParam, LimitParam
 from app.auth.deps import get_current_user
 from app.models.user import User
 from app.models.notification import Notification
@@ -100,8 +101,8 @@ def update_email_preferences(
 
 @router.get("/", response_model=List[NotificationOut])
 def list_notifications(
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     notification_type: Optional[str] = None,
     priority: Optional[str] = None,
     current_user: User = Depends(get_current_user),
@@ -144,8 +145,8 @@ def list_notifications(
 
 @router.get("/unread", response_model=List[NotificationOut])
 def list_unread_notifications(
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):

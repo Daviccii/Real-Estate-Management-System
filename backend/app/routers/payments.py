@@ -16,6 +16,7 @@ from sqlalchemy import func, and_, or_, cast, Float
 
 from app.schemas.payment import PaymentCreate, PaymentUpdate, PaymentOut, PaymentOverview
 from app.database.database import get_db
+from app.utils.pagination import SkipParam, LimitParam
 from app.auth.deps import get_current_user
 from app.auth.roles import verify_role, require_management, require_admin
 from app.repositories.payment_repo import (
@@ -204,8 +205,8 @@ def list_tenant_payments(
 @router.get("/properties/{property_id}/payments", response_model=List[PaymentOut])
 def list_property_payments(
     property_id: int,
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     status: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -225,8 +226,8 @@ def list_property_payments(
 @router.get("/leases/{lease_id}/payments", response_model=List[PaymentOut])
 def list_lease_payments(
     lease_id: int,
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     status: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

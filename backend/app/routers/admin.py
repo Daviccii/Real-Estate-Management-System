@@ -9,6 +9,7 @@ from sqlalchemy import func
 from pydantic import BaseModel
 
 from app.database.database import get_db
+from app.utils.pagination import SkipParam, LimitParam
 from app.auth.permissions import PERMISSION_CATALOG, ROLE_PERMISSIONS
 from app.auth.roles import (
     company_resource_access,
@@ -181,8 +182,8 @@ def update_platform_settings(
 
 @router.get("/users")
 def list_all_users(
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     role: Optional[str] = None,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
@@ -208,8 +209,8 @@ def list_all_users(
 
 @router.get("/properties")
 def list_all_properties(
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     status: Optional[str] = None,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
@@ -239,8 +240,8 @@ def list_all_properties(
 
 @router.get("/payments")
 def list_all_payments(
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     status: Optional[str] = None,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
@@ -275,8 +276,8 @@ def list_all_payments(
 
 @router.get("/inquiries")
 def list_all_inquiries(
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     status: Optional[str] = None,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)

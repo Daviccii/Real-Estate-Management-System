@@ -11,6 +11,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from app.database.database import get_db
+from app.utils.pagination import SkipParam, LimitParam
 from app.auth.roles import require_role
 from app.auth.deps import get_current_user
 from app.models.user import User
@@ -283,8 +284,8 @@ def manager_dashboard(
 
 @router.get("/properties")
 def list_manager_properties(
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     status: Optional[str] = None,
     current_user: User = Depends(require_role(["manager"])),
     db: Session = Depends(get_db)
@@ -374,8 +375,8 @@ def update_manager_property(
 
 @router.get("/tenants")
 def list_manager_tenants(
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     current_user: User = Depends(require_role(["manager"])),
     db: Session = Depends(get_db)
 ):
@@ -414,8 +415,8 @@ def list_manager_tenants(
 
 @router.get("/leases")
 def list_manager_leases(
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     status: Optional[str] = None,
     current_user: User = Depends(require_role(["manager"])),
     db: Session = Depends(get_db)
@@ -458,8 +459,8 @@ def list_manager_leases(
 
 @router.get("/payments")
 def list_manager_payments(
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     status: Optional[str] = None,
     current_user: User = Depends(require_role(["manager"])),
     db: Session = Depends(get_db)
@@ -551,8 +552,8 @@ def manager_payments_overview(
 
 @router.get("/maintenance")
 def list_manager_maintenance(
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     status: Optional[str] = None,
     current_user: User = Depends(require_role(["manager"])),
     db: Session = Depends(get_db)
@@ -631,8 +632,8 @@ def update_maintenance_status(
 
 @router.get("/inquiries")
 def list_manager_inquiries(
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     status: Optional[str] = None,
     current_user: User = Depends(require_role(["manager"])),
     db: Session = Depends(get_db)
@@ -670,8 +671,8 @@ def list_manager_inquiries(
 
 @router.get("/units")
 def list_manager_units(
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     current_user: User = Depends(require_role(["manager"])),
     db: Session = Depends(get_db)
 ):

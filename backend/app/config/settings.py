@@ -150,6 +150,8 @@ class Settings(BaseSettings):
     RETENTION_AUDIT_LOG_DAYS: int = 365
     # Read notifications older than this are pruned; unread get double the window.
     RETENTION_NOTIFICATIONS_DAYS: int = 180
+    # How often the retention daemon runs (docker-compose `retention` service).
+    RETENTION_INTERVAL_HOURS: int = 24
 
     # ==== SECRETS & SECURITY ====
     SECRET_KEY: str  # Required: Use secrets manager in production (e.g., AWS Secrets Manager)
@@ -173,6 +175,16 @@ class Settings(BaseSettings):
     LIVENESS_PROBE_PATH: str = "/health/live"
     READINESS_PROBE_PATH: str = "/health/ready"
     STARTUP_TIMEOUT_SECONDS: int = 30
+
+    # ==== ALERTING (PagerDuty / Datadog / Sentry) ====
+    # Comma-separated fan-out targets, e.g. "console,pagerduty,sentry".
+    # "console" just logs; provider backends fail closed (log + skip) until
+    # their credentials below are supplied from a secrets manager.
+    ALERT_BACKENDS: List[str] = ["console"]
+    PAGERDUTY_ROUTING_KEY: Optional[str] = None
+    SENTRY_DSN: Optional[str] = None
+    DATADOG_API_KEY: Optional[str] = None
+    DATADOG_SITE: str = "datadoghq.com"  # datadoghq.eu for the EU region
 
     # ==== LOGGING (Factor 11: Logs as event streams) ====
     # All logs go to stdout for container orchestration (Kubernetes, Docker, ECS)
@@ -228,6 +240,16 @@ class Settings(BaseSettings):
             return [origin.strip() for origin in v.split(",") if origin.strip()]
         if isinstance(v, list):
             return v
+        return []
+
+    @field_validator("ALERT_BACKENDS", mode="before")
+    @classmethod
+    def parse_alert_backends(cls, v) -> List[str]:
+        """Accept alert backends as a comma-separated string or list."""
+        if isinstance(v, str):
+            return [item.strip().lower() for item in v.split(",") if item.strip()]
+        if isinstance(v, list):
+            return [str(item).strip().lower() for item in v if str(item).strip()]
         return []
 
     @field_validator("DATABASE_URL")

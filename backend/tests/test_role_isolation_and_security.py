@@ -46,12 +46,14 @@ def test_tenant_cannot_access_other_tenants_leases(client, db_session):
     db_session.commit()
     db_session.refresh(lease2)
 
-    # Tenant 1 tries to access Tenant 2's lease
+    # Tenant 1 tries to access Tenant 2's lease.
+    # NOTE: this path previously omitted the /v1 prefix, so the request 404'd
+    # on route resolution and the assertion passed without ever exercising the
+    # authorization check. Covered properly in tests/test_pentest.py as well.
     t1_token = create_access_token({"sub": str(tenant1.id), "role": "tenant"})
     headers = {"Authorization": f"Bearer {t1_token}"}
 
-    res = client.get(f"/api/leases/{lease2.id}", headers=headers)
-    print("LEASES RES:", res.status_code, res.text)
+    res = client.get(f"/api/v1/leases/{lease2.id}", headers=headers)
     # Must be 403 Forbidden or 404 (IDOR protection)
     assert res.status_code in (status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND)
 

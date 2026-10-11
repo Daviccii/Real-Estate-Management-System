@@ -4,6 +4,7 @@ from typing import List
 
 from app.schemas.inquiry import InquiryCreate, InquiryUpdate, InquiryOut
 from app.database.database import get_db
+from app.utils.pagination import SkipParam, LimitParam
 from app.auth.deps import get_current_user
 from app.auth.roles import company_resource_access, verify_role
 # FIX: alias the repo functions. The route handlers below were previously
@@ -45,8 +46,8 @@ def create_inquiry_endpoint(
 
 @router.get("/", response_model=List[InquiryOut])
 def list_inquiries(
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):

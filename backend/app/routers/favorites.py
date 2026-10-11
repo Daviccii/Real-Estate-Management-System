@@ -4,6 +4,7 @@ from typing import List
 
 from app.schemas.favorite import FavoriteCreate, FavoriteOut
 from app.database.database import get_db
+from app.utils.pagination import SkipParam, LimitParam
 from app.auth.deps import get_current_user
 from app.auth.roles import company_resource_access
 from app.repositories.favorite_repo import (
@@ -56,8 +57,8 @@ def remove_property_from_favorites(
 
 @router.get("/", response_model=List[FavoriteOut])
 def list_favorites(
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):

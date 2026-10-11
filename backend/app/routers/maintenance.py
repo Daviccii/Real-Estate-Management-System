@@ -13,6 +13,7 @@ from app.schemas.maintenance import (
     MaintenanceAssign, MaintenanceResolve
 )
 from app.database.database import get_db
+from app.utils.pagination import SkipParam, LimitParam
 from app.auth.deps import get_current_user
 from app.auth.roles import company_resource_access, verify_role, require_management, require_admin
 from app.repositories.maintenance_repo import (
@@ -126,8 +127,8 @@ def list_tenant_maintenance(
 @router.get("/properties/{property_id}/maintenance", response_model=List[MaintenanceOut])
 def list_property_maintenance(
     property_id: int,
-    skip: int = 0,
-    limit: int = 100,
+    skip: SkipParam = 0,
+    limit: LimitParam = 100,
     status: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
