@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { managerService } from '../../services/manager'
 import type { ManagerPayment, PaymentsOverview } from '../../services/manager'
+import { MpesaTransaction, mpesaService } from '../../services/mpesa'
+import { MpesaStatusBadge } from '../../components/MpesaStatusBadge'
 
 const ManagerPayments: React.FC = () => {
   const [payments, setPayments] = useState<ManagerPayment[]>([])
   const [overview, setOverview] = useState<PaymentsOverview | null>(null)
+  const [mpesaTxns, setMpesaTxns] = useState<MpesaTransaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState('')
@@ -13,6 +16,14 @@ const ManagerPayments: React.FC = () => {
     loadPayments()
     loadOverview()
   }, [statusFilter])
+
+  useEffect(() => {
+    // Optional: a manager without M-Pesa configured still gets the ledger.
+    mpesaService
+      .listTransactions({ limit: 50 })
+      .then(setMpesaTxns)
+      .catch(() => setMpesaTxns([]))
+  }, [])
 
   const loadPayments = async () => {
     setLoading(true)
@@ -70,7 +81,7 @@ const ManagerPayments: React.FC = () => {
           </div>
           <div className="stat-card">
             <div className="stat-label">Outstanding Amount</div>
-            <div className="stat-value">${overview.total_amount.toFixed(2)}</div>
+            <div className="stat-value">KSh {overview.outstanding_amount.toFixed(2)}</div>
           </div>
         </div>
       )}
@@ -112,7 +123,7 @@ const ManagerPayments: React.FC = () => {
               payments.map((payment) => (
                 <tr key={payment.id}>
                   <td>{payment.tenant_id}</td>
-                  <td>${payment.amount.toFixed(2)}</td>
+                  <td>KSh {payment.amount.toFixed(2)}</td>
                   <td>
                     {payment.due_date ? new Date(payment.due_date).toLocaleDateString() : '—'}
                   </td>
@@ -131,6 +142,48 @@ const ManagerPayments: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {mpesaTxns.length > 0 && (
+        <div style={{ marginTop: 24 }}>
+          <h2 style={{ marginBottom: 8 }}>M-Pesa Collections</h2>
+          <p className="muted" style={{ marginBottom: 12 }}>
+            Tracked M-Pesa collection attempts for your properties, allocated to the property, unit, and lease they were collected against.
+          </p>
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>Property / Unit</th>
+                  <th>Tenant</th>
+                  <th>Amount</th>
+                  <th>Phone</th>
+                  <th>Status</th>
+                  <th>M-Pesa Receipt</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mpesaTxns.map((t) => (
+                  <tr key={t.id}>
+                    <td className="font-mono">{t.reference}</td>
+                    <td>
+                      {t.property_name || 'Property'}
+                      <div className="muted" style={{ fontSize: 12 }}>Unit: {t.unit_number || 'N/A'}</div>
+                    </td>
+                    <td>{t.tenant_name || `Tenant #${t.tenant_id}`}</td>
+                    <td>KSh {parseFloat(t.amount || '0').toLocaleString()}</td>
+                    <td className="font-mono" style={{ fontSize: 12 }}>{t.phone_number}</td>
+                    <td>
+                      <MpesaStatusBadge status={t.status} />
+                    </td>
+                    <td className="font-mono" style={{ fontSize: 12 }}>{t.mpesa_receipt_number || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div style={{ marginTop: 24, textAlign: 'center' }}>
         <button onClick={() => { loadPayments(); loadOverview() }} className="button" disabled={loading}>

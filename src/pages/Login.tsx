@@ -15,7 +15,7 @@ const METHOD_LABEL_KEYS: Record<MfaMethod, string> = {
 const LoginPage: React.FC = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { login, getDashboardPath } = useAuth()
+  const { login, completeLogin } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -33,8 +33,12 @@ const LoginPage: React.FC = () => {
   const [smsHint, setSmsHint] = useState<string | null>(null)
 
   const finishLogin = async (accessTokenPayload: any) => {
-    const role = accessTokenPayload?.user?.role
-    const target = accessTokenPayload?.redirect_url || (role ? getRoleDashboardPath(role) : getDashboardPath())
+    // Boot the context session from the refresh cookie the server set, so the
+    // guards on the target route see a logged-in user instead of bouncing
+    // back to /login (the 2FA-verify-bounces-to-login bug).
+    const sessionUser = await completeLogin(accessTokenPayload?.user ?? null)
+    const role = sessionUser?.role || accessTokenPayload?.user?.role
+    const target = accessTokenPayload?.redirect_url || getRoleDashboardPath(role)
     navigate(target)
   }
 

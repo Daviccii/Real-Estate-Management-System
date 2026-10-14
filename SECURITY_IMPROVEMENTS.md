@@ -572,6 +572,22 @@ LEGAL_HOLD_ENABLED=false             # true suspends purges of business records 
 RETENTION_TOKEN_GRACE_DAYS=30        # purge expired/used one-time tokens after this many days
 RETENTION_AUDIT_LOG_DAYS=365         # prune audit logs older than this (0 = keep forever)
 RETENTION_NOTIFICATIONS_DAYS=180     # prune read notifications; unread get 2x the window
+
+# M-Pesa / Safaricom Daraja (tenant rent collection — inert until the five
+# credential fields are all set; unrelated features keep working without them.
+# Full guide: MPESA_SETUP.md)
+MPESA_ENVIRONMENT=sandbox            # sandbox | production
+MPESA_CONSUMER_KEY=                  # Daraja app credential (secret)
+MPESA_CONSUMER_SECRET=               # Daraja app credential (secret)
+MPESA_SHORTCODE=                     # PayBill/Till that receives rent
+MPESA_PASSKEY=                       # Lipa na M-Pesa Online passkey (secret)
+MPESA_CALLBACK_URL=                  # public HTTPS URL: <base>/api/v1/mpesa/callback
+MPESA_TRANSACTION_TYPE=CustomerPayBillOnline
+MPESA_ACCOUNT_REFERENCE=PropNoxa     # max 12 chars (Daraja limit)
+MPESA_TRANSACTION_DESCRIPTION=Rent Payment
+MPESA_TIMEOUT_SECONDS=30
+MPESA_PRODUCTION_ENABLED=false       # second key for live endpoints; set true only after sandbox validation
+# Optional tuning: MPESA_MAX_AMOUNT=250000 / MPESA_INITIATE_LIMIT_PER_HOUR=10 / MPESA_DUPLICATE_WINDOW_SECONDS=300
 ```
 
 ### Required for Production
@@ -1416,6 +1432,7 @@ For questions or issues:
 ## Changelog
 
 ### October 11, 2026
+- Completed the production-ready **M-Pesa (Safaricom Daraja) rent collection** integration — see `MPESA_SETUP.md` for the full operator guide. Server-side STK Push with a persisted attempt row committed *before* the network call (a crash can never lose a possibly-charged request); strictly honest statuses (`pending → awaiting_callback → succeeded|failed|cancelled|timed_out|expired`, `unknown` for indeterminate outcomes) where **success requires a validated callback or reconciliation, never an STK acceptance**; exactly-once crediting via an atomic UPDATE-claim on live statuses plus replay/enrich path (duplicate callbacks idempotent, overpayments recorded but not double-counted); anti-double-charge controls — one live prompt per obligation (`MPESA_DUPLICATE_WINDOW_SECONDS`), bounded 401-only token retry, ambiguous transport failures parked as `unknown` for `POST /mpesa/transactions/{id}/reconcile` (per-user) and `POST /mpesa/reconcile` (admin sweep) instead of blind resends; no PIN is ever requested, stored, or logged; money attributed only to the payment/lease/property it was initiated for (tenant/manager/owner authz on every endpoint, callback match on checkout id); **no B2C payouts or automatic transfers**; two-key production switch (`MPESA_ENVIRONMENT=production` + `MPESA_PRODUCTION_ENABLED=true`) and a hard switch that keeps live endpoints blocked by default; `MPESA_PRODUCTION_ENABLED=false` default; startup/health config validation that lists missing credential names in `/health/metrics.mpesa` while every unrelated feature keeps working without credentials; tenant pay UI that never claims success from the acceptance alone (bounded polling, 409 adopts the live attempt instead of re-prompting, terminal 502 states surfaced honestly), manager/owner collection views, and receipts surfaced in the tenant ledger; migration `0037_mpesa_transactions` (dev DB migrated; backup `backend/database.db.bak-20261011-pre-0037`); **96 new backend tests** (all Safaricom HTTP mocked — no real payment in CI) → backend suite **424 passed / 1 skipped**, frontend suite **282 tests / 41 files**, typecheck + build clean; browser-verified end-to-end against a running backend (honest fail-closed OAuth error with dummy credentials, no false success, activity table + reconcile flow + manager/owner views)
 - Completed the deployment-readiness batch: **alerting**, **internal penetration testing**, **load testing**, and **deployment gap closure** — see the four new sections above. Highlights: PagerDuty/Datadog/Sentry alert backends behind `ALERT_BACKENDS` (console default, fail-closed, never-raise; 5xx handler + critical security events page automatically; 13 tests); 51-test attacker-minded pentest suite that found and fixed **unbounded pagination on 43 endpoints** (`limit=-1` reached SQL) and **a vacuous legacy IDOR test**, with everything else holding (JWT forgery/tamper/alg-none, SQLi, mass assignment, IDOR on payments/invoices/leases, upload magic-byte bypass + traversal, webhook forgery, pagination abuse — all closed); HTTP load test showing **0 errors / 0 5xx across 4,792 requests up to 100 concurrent users** on a single dev box (SQLite-bound ceiling ~45–62 RPS; production is Postgres + Redis + 4 workers); uploads now on a named `media_uploads` volume, dev DBs excluded from Docker images, and the retention daemon scheduled in compose. Backend **328 tests + 1 skipped**, frontend **263 tests / 39 files** green, typecheck clean.
 - Added `DEPLOYMENT.md` — deployment runbook mapping the launch checklist to the repo state (CI/CD gates, backup/PITR tooling, health + metrics endpoints, secret inventory, compose reference stack), the recommended CDN → ALB → API → RDS/Redis architecture with per-component gaps, a rollback procedure (image swap, migration downgrade, restore + audit-chain re-verify), and an incident-response quick guide; outstanding manual actions tracked (admin password rotation, secrets manager, hosting choice, payment gateway, SMTP, upload volumes, alerting, pen/load testing)
 

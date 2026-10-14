@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { paymentService } from '../../services/payment'
+import { mpesaService, type MpesaTransaction, type MpesaRefundCreate } from '../../services/mpesa'
 import type { Payment } from '../../types'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { useToast } from '../../components/ToastProvider'
@@ -13,7 +14,10 @@ const PaymentsManagement: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showRecordModal, setShowRecordModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showRefundModal, setShowRefundModal] = useState(false)
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
+  const [selectedTransaction, setSelectedTransaction] = useState<MpesaTransaction | null>(null)
+  const [mpesaTransactions, setMpesaTransactions] = useState<MpesaTransaction[]>([])
   const [recordForm, setRecordForm] = useState({
     tenant_id: '',
     lease_id: '',
@@ -35,11 +39,26 @@ const PaymentsManagement: React.FC = () => {
     reference: '',
     notes: ''
   })
+  const [refundForm, setRefundForm] = useState<MpesaRefundCreate>({
+    amount: '',
+    reason: '',
+    reversal_reference: ''
+  })
   const { addToast } = useToast()
 
   useEffect(() => {
     loadPayments()
+    loadMpesaTransactions()
   }, [statusFilter])
+
+  const loadMpesaTransactions = async () => {
+    try {
+      const txns = await mpesaService.listTransactions({ limit: 100 })
+      setMpesaTransactions(txns)
+    } catch (err) {
+      console.error('Failed to load M-Pesa transactions:', err)
+    }
+  }
 
   const loadPayments = async () => {
     setLoading(true)
@@ -151,6 +170,30 @@ const PaymentsManagement: React.FC = () => {
     }
   }
 
+  const handleRefund = (transaction: MpesaTransaction) => {
+    setSelectedTransaction(transaction)
+    setRefundForm({
+      amount: transaction.amount,
+      reason: '',
+      reversal_reference: ''
+    })
+    setShowRefundModal(true)
+  }
+
+  const handleCreateRefund = async () => {
+    if (!selectedTransaction) return
+
+    try {
+      await mpesaService.createRefund(selectedTransaction.id, refundForm)
+      addToast({ message: 'Refund recorded successfully', type: 'success' })
+      setShowRefundModal(false)
+      setSelectedTransaction(null)
+      loadMpesaTransactions()
+    } catch (err: any) {
+      addToast({ message: err?.message || 'Failed to record refund', type: 'error' })
+    }
+  }
+
   const getStatusBadgeColor = (status: string) => {
     const colors: Record<string, string> = {
       paid: 'var(--success)',
@@ -248,7 +291,7 @@ const PaymentsManagement: React.FC = () => {
                   <td data-label="ID" style={{ padding: 12 }}>#{payment.id}</td>
                   <td data-label="Property" style={{ padding: 12 }}>#{payment.property_id}</td>
                   <td data-label="Unit" style={{ padding: 12 }}>#{payment.unit_id}</td>
-                  <td data-label="Amount" style={{ padding: 12 }}>{payment.amount}</td>
+                  <td data-label="Amount" style={{ padding: 12 }}>KSh {payment.amount}</td>
                   <td data-label="Due Date" style={{ padding: 12 }}>
                     {new Date(payment.due_date).toLocaleDateString()}
                   </td>
@@ -494,6 +537,109 @@ const PaymentsManagement: React.FC = () => {
               style={{ width: '100%' }}
               rows={3}
             />
+          </div>
+        </div>
+      </ConfirmDialog>
+
+      {/* M-Pesa Transactions Section */}
+      {mpesaTransactions.length > 0 && (
+        <div className="card admin-table-container" style={{ marginTop: 24 }}>
+          <h3 style={{ marginBottom: 16 }}>M-Pesa Transactions</h3>
+          <table className="admin-table">
+            <thead>
+              <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
+                <th style={{ textAlign: 'left', padding: 12, fontWeight: 600 }}>Reference</th>
+                <th style={{ textAlign: 'left', padding: 12, fontWeight: 600 }}>Amount</th>
+                <th style={{ textAlign: 'left', padding: 12, fontWeight: 600 }}>Phone</th>
+                <th style={{ textAlign: 'left', padding: 12, fontWeight: 600 }}>Status</th>
+                <th style={{ textAlign: 'left', padding: 12, fontWeight: 600 }}>Receipt</th>
+                <th style={{ textAlign: 'right', padding: 12, fontWeight: 600 }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mpesaTransactions.map((txn) => (
+                <tr key={txn.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td data-label="Reference" style={{ padding: 12 }}>{txn.reference}</td>
+                  <td data-label="Amount" style={{ padding: 12 }}>KSh {txn.amount}</td>
+                  <td data-label="Phone" style={{ padding: 12 }}>{txn.phone_number}</td>
+                  <td data-label="Status" style={{ padding: 12 }}>
+                    <span style={{
+                      color: 'white',
+                      background: txn.status === 'succeeded' ? 'var(--success)' : 'var(--warning)',
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      fontSize: 12,
+                      fontWeight: 600
+                    }}>
+                      {txn.status}
+                    </span>
+                  </td>
+                  <td data-label="Receipt" style={{ padding: 12 }}>{txn.mpesa_receipt_number || '—'}</td>
+                  <td data-label="Actions" style={{ padding: 12, textAlign: 'right' }}>
+                    {txn.status === 'succeeded' && (
+                      <button
+                        className="button warning"
+                        style={{ padding: '4px 8px', fontSize: 12 }}
+                        onClick={() => handleRefund(txn)}
+                      >
+                        Record Refund
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Refund Modal */}
+      <ConfirmDialog
+        open={showRefundModal}
+        title="Record M-Pesa Refund"
+        description={`Record a refund for transaction ${selectedTransaction?.reference}`}
+        onConfirm={handleCreateRefund}
+        onCancel={() => {
+          setShowRefundModal(false)
+          setSelectedTransaction(null)
+        }}
+      >
+        <div style={{ marginTop: 16 }}>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>Amount (KSh):</label>
+            <input
+              className="input"
+              value={refundForm.amount}
+              onChange={(e) => setRefundForm({...refundForm, amount: e.target.value})}
+              style={{ width: '100%' }}
+            />
+            <p style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+              Maximum: KSh {selectedTransaction?.amount}
+            </p>
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>Reason:</label>
+            <textarea
+              className="input"
+              value={refundForm.reason}
+              onChange={(e) => setRefundForm({...refundForm, reason: e.target.value})}
+              style={{ width: '100%' }}
+              rows={3}
+              placeholder="Why is this being refunded?"
+            />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 600 }}>Reversal Reference (optional):</label>
+            <input
+              className="input"
+              value={refundForm.reversal_reference}
+              onChange={(e) => setRefundForm({...refundForm, reversal_reference: e.target.value})}
+              style={{ width: '100%' }}
+              placeholder="M-Pesa transaction code from your statement"
+            />
+            <p style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+              The M-Pesa transaction code from your landlord statement after reversing the payment
+            </p>
           </div>
         </div>
       </ConfirmDialog>

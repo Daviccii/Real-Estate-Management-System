@@ -82,7 +82,7 @@ const ManagerLeases: React.FC = () => {
                   <td>
                     {lease.end_date ? new Date(lease.end_date).toLocaleDateString() : '—'}
                   </td>
-                  <td>${lease.rent_amount.toFixed(2)}</td>
+                  <td>KSh {lease.rent_amount.toFixed(2)}</td>
                   <td>
                     <span className={`badge status-${lease.status}`}>
                       {lease.status}

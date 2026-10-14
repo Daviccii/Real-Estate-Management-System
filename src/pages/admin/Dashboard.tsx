@@ -88,7 +88,7 @@ const AdminDashboard: React.FC = () => {
               key={role} 
               title={`${formatRole(role)}s`} 
               value={count} 
-              subtitle={`${((count / stats.users.total) * 100).toFixed(1)}% of users`}
+              subtitle={stats.users.total > 0 ? `${((count / stats.users.total) * 100).toFixed(1)}% of users` : undefined}
             />
           ))}
         </div>
@@ -102,7 +102,7 @@ const AdminDashboard: React.FC = () => {
           <StatCard 
             title="Active Properties" 
             value={stats.properties.active} 
-            subtitle={`${((stats.properties.active / stats.properties.total) * 100).toFixed(1)}% active`}
+            subtitle={stats.properties.total > 0 ? `${((stats.properties.active / stats.properties.total) * 100).toFixed(1)}% active` : undefined}
           />
           {Object.entries(stats.properties.by_purpose).map(([purpose, count]) => (
             <StatCard 

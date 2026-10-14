@@ -4,6 +4,7 @@ import { adminService } from '../../services/admin'
 import type { PlatformSettings } from '../../services/admin'
 import { useToast } from '../../components/ToastProvider'
 import MfaPanel from '../../components/MfaPanel'
+import { api } from '../../services/api'
 
 const AdminSettings: React.FC = () => {
   const { user } = useAuth()
@@ -11,6 +12,12 @@ const AdminSettings: React.FC = () => {
   const [settings, setSettings] = useState<PlatformSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [changingPassword, setChangingPassword] = useState(false)
 
   useEffect(() => { loadSettings() }, [])
 
@@ -39,6 +46,37 @@ const AdminSettings: React.FC = () => {
       loadSettings() // revert to server truth on failure
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (newPassword !== confirmPassword) {
+      addToast({ message: 'New passwords do not match', type: 'error' })
+      return
+    }
+    if (newPassword.length < 8) {
+      addToast({ message: 'Password must be at least 8 characters', type: 'error' })
+      return
+    }
+    setChangingPassword(true)
+    try {
+      await api.request('/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword
+        })
+      })
+      addToast({ message: 'Password changed successfully', type: 'success' })
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (err: any) {
+      addToast({ message: err?.message || 'Failed to change password', type: 'error' })
+    } finally {
+      setChangingPassword(false)
     }
   }
 
@@ -77,6 +115,53 @@ const AdminSettings: React.FC = () => {
             <label style={{ display: 'block', marginBottom: 4, fontSize: 12, fontWeight: 600 }}>Role</label>
             <div style={{ padding: 8, background: 'var(--bg-secondary)', borderRadius: 4 }}>{user?.role || 'N/A'}</div>
           </div>
+        </div>
+
+        <div className="card">
+          <h3 style={{ marginBottom: 12 }}>Change Password</h3>
+          <form onSubmit={handleChangePassword} style={{ display: 'grid', gap: 12 }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: 4, fontSize: 12, fontWeight: 600 }}>Current Password</label>
+              <input
+                type="password"
+                className="input"
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
+                required
+                disabled={changingPassword}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: 4, fontSize: 12, fontWeight: 600 }}>New Password</label>
+              <input
+                type="password"
+                className="input"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                required
+                disabled={changingPassword}
+                placeholder="Min 8 characters, uppercase, lowercase, digit, special char"
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: 4, fontSize: 12, fontWeight: 600 }}>Confirm New Password</label>
+              <input
+                type="password"
+                className="input"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                required
+                disabled={changingPassword}
+              />
+            </div>
+            <button
+              type="submit"
+              className="button"
+              disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
+            >
+              {changingPassword ? 'Changing...' : 'Change Password'}
+            </button>
+          </form>
         </div>
 
         <div className="card">

@@ -128,6 +128,7 @@ From `backend/app/config/settings.py`; template in `backend/.env.example`.
 | `EMAIL_BACKEND` / `SMTP_*` | `smtp` + relay credentials (fails fast if host missing) |
 | `SMS_BACKEND` | `console` or `twilio` (twilio needs provider creds) |
 | `PAYMENT_GATEWAY` | **`mock` is rejected in production.** Choose `stripe`/`paypal`/`mpesa` and set `PAYMENT_WEBHOOK_SECRET`, or leave payments off |
+| `MPESA_ENVIRONMENT` / `MPESA_CONSUMER_KEY` / `MPESA_CONSUMER_SECRET` / `MPESA_SHORTCODE` / `MPESA_PASSKEY` / `MPESA_CALLBACK_URL` | rent-collection STK Push credentials from Safaricom Daraja; inert until all five credential fields are set (unrelated features unaffected; `/health/metrics.mpesa` lists what's missing). Also: `MPESA_PRODUCTION_ENABLED=true` required to reach live endpoints. Guide: `MPESA_SETUP.md` |
 | `LEGAL_HOLD_ENABLED` / `RETENTION_*` | retention windows, litigation hold, and `RETENTION_INTERVAL_HOURS` (retention daemon cadence) |
 | `BACKUP_*` | backup dir, retention, secondary copy, WAL archive, physical base backups |
 | `ALERT_BACKENDS` | comma-separated: `console`, `pagerduty`, `datadog`, `sentry` (default `console`) |
@@ -200,6 +201,7 @@ Branch → fix → push → CI gates → dispatch `deploy.yml` → green promoti
 2. Provision a secrets manager and inject the §4 variables (including the alerting provider credentials if you want alerts off `console`).
 3. Choose the hosting target and fill in `deploy.yml` deploy commands; protect the `production` environment with reviewers.
 4. Decide payments: real gateway credentials or leave `PAYMENT_GATEWAY` off (mock is rejected in production).
-5. Real SMTP relay credentials (`EMAIL_BACKEND=smtp`).
-6. Create the monitoring-side accounts/routes (PagerDuty service + routing key, Datadog API key/agent, Sentry project DSN) and set `ALERT_BACKENDS` to `pagerduty,datadog,sentry` (or your subset).
-7. Re-run `scripts/load_test.py` against the deployed staging stack and record the numbers; commission an external penetration test before public launch.
+5. **M-Pesa rent collection**: complete Safaricom onboarding (M-Pesa Business shortcode + production Daraja app go-live, see `MPESA_SETUP.md` §11), populate the `MPESA_*` credentials, register the production callback URL, and flip `MPESA_PRODUCTION_ENABLED=true` only after a sandbox end-to-end test.
+6. Real SMTP relay credentials (`EMAIL_BACKEND=smtp`).
+7. Create the monitoring-side accounts/routes (PagerDuty service + routing key, Datadog API key/agent, Sentry project DSN) and set `ALERT_BACKENDS` to `pagerduty,datadog,sentry` (or your subset).
+8. Re-run `scripts/load_test.py` against the deployed staging stack and record the numbers; commission an external penetration test before public launch.

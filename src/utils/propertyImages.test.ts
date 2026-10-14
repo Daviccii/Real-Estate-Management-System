@@ -1,77 +1,57 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import type { Property } from '../types'
-import { placeholderPropertyImage, resolvePropertyImage } from './propertyImages'
+import { propertyImage } from './propertyImages'
 
 const property = (overrides: Partial<Property> = {}) =>
-  ({ id: 42, name: 'Test listing', property_type: 'Apartment', purpose: 'rent', ...overrides }) as Property
-
-const pexelsResponse = (url: string) =>
-  new Response(JSON.stringify({ photos: [{ src: { large: url } }] }), { status: 200 })
+  ({ id: 42, name: 'Test listing', property_type: 'Apartment', purpose: 'buy', ...overrides }) as Property
 
 describe('propertyImages', () => {
-  beforeEach(() => {
-    vi.unstubAllEnvs()
-    vi.resetModules()
+  it('prefers an explicit image_url over anything else', () => {
+    expect(propertyImage(property({ image_url: 'https://cdn.test/real.jpg' }))).toBe('https://cdn.test/real.jpg')
   })
 
-  it('returns a deterministic picsum placeholder', () => {
-    expect(placeholderPropertyImage(property({ id: 7 }))).toContain('picsum.photos/seed/propnoxa-7')
+  it('serves a local, type-matched photo for apartments', () => {
+    expect(propertyImage(property({ id: 2, property_type: 'Apartment' }))).toMatch(/^\/property-images\/apartment-\d\.jpg$/)
   })
 
-  it('prefers an explicit image_url over anything else', async () => {
-    const url = await resolvePropertyImage(property({ image_url: 'https://cdn.test/real.jpg' }))
-    expect(url).toBe('https://cdn.test/real.jpg')
+  it('serves a matched exterior/interior for rent vs sale', () => {
+    expect(propertyImage(property({ id: 1, property_type: 'Apartment', purpose: 'rent' })))
+      .toMatch(/^\/property-images\/apartment-interior-\d\.jpg$/)
+    expect(propertyImage(property({ id: 2, property_type: 'Apartment', purpose: 'rent' })))
+      .toMatch(/^\/property-images\/apartment-\d\.jpg$/)
+    expect(propertyImage(property({ id: 3, property_type: 'Apartment', purpose: 'buy' })))
+      .toMatch(/^\/property-images\/apartment-\d\.jpg$/)
   })
 
-  it('reuses the session cache without hitting the network', async () => {
-    sessionStorage.setItem('pn-image-cache:42', 'https://cached.test/photo.jpg')
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
-
-    const url = await resolvePropertyImage(property())
-    expect(url).toBe('https://cached.test/photo.jpg')
-    expect(fetchMock).not.toHaveBeenCalled()
+  it('maps every property type family to its own library folder', () => {
+    const cases: Array<[string, RegExp]> = [
+      ['Villa', /^\/property-images\/villa-\d\.jpg$/],
+      ['Mansion', /^\/property-images\/mansion-\d\.jpg$/],
+      ['Bungalow', /^\/property-images\/bungalow-\d\.jpg$/],
+      ['Townhouse', /^\/property-images\/townhouse-\d\.jpg$/],
+      ['Maisonette', /^\/property-images\/maisonette-\d\.jpg$/],
+      ['Studio', /^\/property-images\/studio-\d\.jpg$/],
+      ['Bedsitter', /^\/property-images\/studio-\d\.jpg$/],
+      ['Penthouse', /^\/property-images\/penthouse-1\.jpg$/],
+      ['Office', /^\/property-images\/office-\d\.jpg$/],
+      ['Commercial', /^\/property-images\/commercial-\d\.jpg$/],
+      ['Industrial', /^\/property-images\/warehouse-\d\.jpg$/],
+      ['Land', /^\/property-images\/land-\d\.jpg$/],
+    ]
+    for (const [type, pattern] of cases) {
+      expect(propertyImage(property({ id: 5, property_type: type })), type).toMatch(pattern)
+    }
   })
 
-  it('falls back to picsum when no Pexels key is configured', async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
-    vi.stubEnv('VITE_PEXELS_API_KEY', '')
-
-    const mod = await import('./propertyImages')
-    const url = await mod.resolvePropertyImage(property({ id: 9 }))
-    expect(url).toContain('picsum.photos/seed/propnoxa-9')
-    expect(fetchMock).not.toHaveBeenCalled()
+  it('is deterministic per property id', () => {
+    const p = property({ id: 13, property_type: 'Villa' })
+    expect(propertyImage(p)).toBe(propertyImage({ ...p }))
+    expect(propertyImage(p)).toBe(propertyImage(p))
   })
 
-  it('queries Pexels with a type-aware search and caches the result', async () => {
-    vi.stubEnv('VITE_PEXELS_API_KEY', 'pexels-key')
-    const fetchMock = vi.fn().mockResolvedValue(pexelsResponse('https://pexels.test/villa.jpg'))
-    vi.stubGlobal('fetch', fetchMock)
-
-    const mod = await import('./propertyImages')
-    const url = await mod.resolvePropertyImage(property({ id: 3, property_type: 'Villa', purpose: 'sale' }))
-
-    expect(url).toBe('https://pexels.test/villa.jpg')
-    const [calledUrl, options] = fetchMock.mock.calls[0]
-    expect(decodeURIComponent(calledUrl as string)).toContain('luxury villa exterior')
-    expect((options as RequestInit).headers).toEqual({ Authorization: 'pexels-key' })
-    expect(sessionStorage.getItem('pn-image-cache:3')).toBe('https://pexels.test/villa.jpg')
-  })
-
-  it('never throws: network and API failures degrade to the placeholder', async () => {
-    vi.stubEnv('VITE_PEXELS_API_KEY', 'pexels-key')
-
-    const mod = await import('./propertyImages')
-
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('offline')))
-    expect(await mod.resolvePropertyImage(property({ id: 11 }))).toContain('seed/propnoxa-11')
-
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 500 })))
-    expect(await mod.resolvePropertyImage(property({ id: 12 }))).toContain('seed/propnoxa-12')
-
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ photos: [] }), { status: 200 })))
-    expect(await mod.resolvePropertyImage(property({ id: 13 }))).toContain('seed/propnoxa-13')
+  it('falls back to the apartment library for unknown types', () => {
+    expect(propertyImage(property({ id: 4, property_type: 'Space Station' })))
+      .toMatch(/^\/property-images\/apartment-\d\.jpg$/)
   })
 })

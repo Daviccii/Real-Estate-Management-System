@@ -914,3 +914,5 @@ html[data-theme="dark"]{
 .install-banner-action{flex-shrink:0}
 .install-banner-dismiss{flex-shrink:0;padding:4px 10px}
 @media (max-width:640px){.install-banner{left:12px;right:12px;bottom:12px;transform:none;width:auto}}
+@keyframes mpesa-spin{to{transform:rotate(360deg)}}
+.mpesa-spinner{animation:mpesa-spin 1s linear infinite;border-top-color:#10b981}

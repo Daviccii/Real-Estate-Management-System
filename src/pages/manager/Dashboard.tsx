@@ -117,7 +117,7 @@ const ManagerDashboard: React.FC = () => {
           </div>
           <div className="metric-item" style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #e0e0e0' }}>
             <span>Outstanding Amount</span>
-            <strong>${(dashboard.payments.pending_amount || 0).toFixed(2)}</strong>
+            <strong>KSh {(dashboard.payments.pending_amount || 0).toFixed(2)}</strong>
           </div>
         </div>
 

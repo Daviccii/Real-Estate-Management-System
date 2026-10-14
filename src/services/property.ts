@@ -2,8 +2,22 @@ import { api } from './api'
 import { Property, PropertyMatchCriteria, PropertyMatchResult, PropertyTour } from '../types'
 import { getToken } from './token'
 
+export type BrowseFilters = {
+  skip?: number
+  limit?: number
+  search?: string
+  property_type?: string
+  city?: string
+  status?: string
+  sort?: string
+  purpose?: string
+  verified_only?: boolean
+  bedrooms?: string
+  budget?: string
+}
+
 // Always uses the public endpoint for browsing — see list() below for why.
-const buildQuery = (params?: { skip?: number; limit?: number; search?: string; property_type?: string; city?: string; status?: string; sort?: string; purpose?: string; verified_only?: boolean }) => {
+const buildQuery = (params?: BrowseFilters) => {
   const qs = new URLSearchParams()
   if (typeof params?.skip === 'number') qs.set('skip', String(params.skip))
   if (typeof params?.limit === 'number') qs.set('limit', String(params.limit))
@@ -14,6 +28,10 @@ const buildQuery = (params?: { skip?: number; limit?: number; search?: string; p
   if (params?.sort) qs.set('sort', params.sort)
   if (params?.purpose) qs.set('purpose', params.purpose)
   if (params?.verified_only) qs.set('verified_only', 'true')
+  // Server-side bedroom count + budget bucket filtering (page-correct, unlike
+  // the old client-side soft filters that only shaped the already-fetched page).
+  if (params?.bedrooms) qs.set('bedrooms', params.bedrooms)
+  if (params?.budget) qs.set('budget', params.budget)
   return qs.toString()
 }
 
@@ -26,19 +44,19 @@ const buildQuery = (params?: { skip?: number; limit?: number; search?: string; p
 // filter by owner_id, so the authenticated route has no benefit here anyway —
 // always use the public endpoint for browsing, same as meta() and
 // marketInsights() below already do.
-const list = async (params?: { skip?: number; limit?: number; search?: string; property_type?: string; city?: string; status?: string; sort?: string; purpose?: string; verified_only?: boolean }): Promise<Property[]> => {
+const list = async (params?: BrowseFilters): Promise<Property[]> => {
   const query = buildQuery(params)
   return api.request(query ? `/properties/public?${query}` : '/properties/public')
 }
 
-const pagedList = async (page = 1, limit = 6, params?: { search?: string; property_type?: string; city?: string; status?: string; sort?: string; purpose?: string; verified_only?: boolean }): Promise<Property[]> => {
+const pagedList = async (page = 1, limit = 6, params?: BrowseFilters): Promise<Property[]> => {
   const skip = Math.max(0, (page - 1) * limit)
   return list(Object.assign({}, params || {}, { skip, limit }))
 }
 
 // Total count of properties matching the given filters (no skip/limit/sort) —
 // backs real "Page X of Y" pagination instead of inferring from a full page.
-const count = async (params?: { search?: string; property_type?: string; city?: string; status?: string; purpose?: string; verified_only?: boolean }): Promise<number> => {
+const count = async (params?: BrowseFilters): Promise<number> => {
   const query = buildQuery(params)
   const res = await api.request<{ total: number }>(query ? `/properties/public/count?${query}` : '/properties/public/count')
   return res?.total ?? 0

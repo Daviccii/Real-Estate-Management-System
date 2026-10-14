@@ -168,6 +168,7 @@ interface PaymentsOverview {
   pending: number
   overdue: number
   total_amount: number
+  outstanding_amount: number
 }
 
 export const managerService = {

@@ -5,9 +5,12 @@ import { submitVerification } from '../../services/verification'
 import MfaPanel from '../../components/MfaPanel'
 import { getMyDeletionRequest, requestAccountDeletion, cancelAccountDeletion, exportMyData, type DeletionRequestInfo } from '../../services/privacy'
 import { notificationService, type EmailPreference } from '../../services/notification'
+import { api } from '../../services/api'
+import { useToast } from '../../components/ToastProvider'
 
 export const TenantProfile: React.FC = () => {
   const { user } = useAuth()
+  const { addToast } = useToast()
   const [idType, setIdType] = useState('National ID')
   const [idNumber, setIdNumber] = useState('')
   const [docUrl, setDocUrl] = useState('')
@@ -18,6 +21,12 @@ export const TenantProfile: React.FC = () => {
   const [privacyBusy, setPrivacyBusy] = useState(false)
   const [privacyMsg, setPrivacyMsg] = useState<string | null>(null)
   const [emailPref, setEmailPref] = useState<EmailPreference | null>(null)
+
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [changingPassword, setChangingPassword] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -39,6 +48,37 @@ export const TenantProfile: React.FC = () => {
       setEmailPref(saved)
     } catch {
       setEmailPref({ notifications_enabled: !next })
+    }
+  }
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (newPassword !== confirmPassword) {
+      addToast({ message: 'New passwords do not match', type: 'error' })
+      return
+    }
+    if (newPassword.length < 8) {
+      addToast({ message: 'Password must be at least 8 characters', type: 'error' })
+      return
+    }
+    setChangingPassword(true)
+    try {
+      await api.request('/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword
+        })
+      })
+      addToast({ message: 'Password changed successfully', type: 'success' })
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (err: any) {
+      addToast({ message: err?.message || 'Failed to change password', type: 'error' })
+    } finally {
+      setChangingPassword(false)
     }
   }
 
@@ -198,6 +238,54 @@ export const TenantProfile: React.FC = () => {
             </button>
           </form>
         </div>
+      </div>
+
+      {/* Password Change */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm space-y-4">
+        <h2 className="font-bold text-base text-slate-800 border-b border-slate-100 pb-3">Change Password</h2>
+        <form onSubmit={handleChangePassword} className="space-y-4 text-sm">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Current Password</label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={e => setCurrentPassword(e.target.value)}
+              required
+              disabled={changingPassword}
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">New Password</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              required
+              disabled={changingPassword}
+              placeholder="Min 8 characters, uppercase, lowercase, digit, special char"
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Confirm New Password</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              required
+              disabled={changingPassword}
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
+            className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold shadow transition"
+          >
+            {changingPassword ? 'Changing...' : 'Change Password'}
+          </button>
+        </form>
       </div>
 
       <div style={{ marginTop: 24 }}>

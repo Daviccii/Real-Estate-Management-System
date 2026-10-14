@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 
+// @ts-ignore - TypeScript type imports work despite the config loader warning
 import { createPwaPrecachePlugin } from './src/pwa/swBuild'
 
 export default defineConfig({

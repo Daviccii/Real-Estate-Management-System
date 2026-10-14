@@ -17,6 +17,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 // @ts-expect-error node builtins are untyped in this DOM-only tsconfig; this module only runs under Node.
 import { join, resolve } from 'node:path'
 
+// @ts-ignore - TypeScript type imports work despite the config loader warning
 import type { Plugin } from 'vite'
 
 declare const process: { cwd: () => string }

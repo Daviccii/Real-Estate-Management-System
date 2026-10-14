@@ -70,6 +70,20 @@ services:
       DATADOG_API_KEY: ${DATADOG_API_KEY:-}
       DATADOG_SITE: ${DATADOG_SITE:-datadoghq.com}
       SENTRY_DSN: ${SENTRY_DSN:-}
+      # M-Pesa (Safaricom Daraja) rent collection. Credentials come from the
+      # host environment / secrets manager, never from the image; empty
+      # values keep the integration inert without affecting other features.
+      MPESA_ENVIRONMENT: ${MPESA_ENVIRONMENT:-sandbox}
+      MPESA_CONSUMER_KEY: ${MPESA_CONSUMER_KEY:-}
+      MPESA_CONSUMER_SECRET: ${MPESA_CONSUMER_SECRET:-}
+      MPESA_SHORTCODE: ${MPESA_SHORTCODE:-}
+      MPESA_PASSKEY: ${MPESA_PASSKEY:-}
+      MPESA_CALLBACK_URL: ${MPESA_CALLBACK_URL:-}
+      MPESA_TRANSACTION_TYPE: ${MPESA_TRANSACTION_TYPE:-CustomerPayBillOnline}
+      MPESA_ACCOUNT_REFERENCE: ${MPESA_ACCOUNT_REFERENCE:-PropNoxa}
+      MPESA_TRANSACTION_DESCRIPTION: ${MPESA_TRANSACTION_DESCRIPTION:-Rent Payment}
+      MPESA_TIMEOUT_SECONDS: ${MPESA_TIMEOUT_SECONDS:-30}
+      MPESA_PRODUCTION_ENABLED: ${MPESA_PRODUCTION_ENABLED:-false}
     volumes:
       # Property media uploads and cached PDFs must survive container
       # rebuilds and be shared across api/worker instances.

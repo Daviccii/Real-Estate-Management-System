@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { Property } from '../types'
 import { Link } from 'react-router-dom'
 import { useFavorites } from '../contexts/FavoriteContext'
 import { useAuth } from '../contexts/AuthContext'
 import { NON_RESIDENTIAL_TYPES } from '../data/propertySearchOptions'
-import { resolvePropertyImage, placeholderPropertyImage } from '../utils/propertyImages'
+import { propertyImage } from '../utils/propertyImages'
 import { propertyMapUrl } from '../utils/propertyLocation'
 
 type PropertyCardProps = {
@@ -43,16 +43,9 @@ const PropertyCard: React.FC<PropertyCardProps> = ({p, variant = 'default', onFa
   const canFavorite = user && onFavoriteToggle
   const canManage = Boolean(user && (user.id === p.owner_id || ['admin', 'manager', 'agent'].includes(user.role)))
 
-  // Show a stable placeholder immediately, then swap in a real Pexels photo
-  // once resolved (or an explicit image_url, which resolvePropertyImage
-  // always prefers). Never blocks the card's initial render on the network.
-  const [img, setImg] = useState(() => placeholderPropertyImage(p))
-  useEffect(() => {
-    let cancelled = false
-    setImg(placeholderPropertyImage(p))
-    resolvePropertyImage(p).then((url) => { if (!cancelled) setImg(url) })
-    return () => { cancelled = true }
-  }, [p.id, p.image_url, p.property_type, p.purpose])
+  // Type-matched local photo (or the listing's own image_url) - resolved
+  // synchronously, so the card never flashes an unrelated placeholder.
+  const img = propertyImage(p)
 
   const price = formatPrice(p)
   const area = formatArea(p.area)

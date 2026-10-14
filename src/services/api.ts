@@ -26,6 +26,11 @@ function formatErrorMessage(data: any, fallback: string): string {
       .map((e: any) => e?.msg || (typeof e === 'string' ? e : JSON.stringify(e)))
       .join('; ')
   }
+  // FastAPI handlers may attach structured detail (e.g. M-Pesa 409/502 with
+  // {message, transaction}); surface the human-readable part.
+  if (data.detail && typeof data.detail === 'object' && typeof data.detail.message === 'string') {
+    return data.detail.message
+  }
   if (typeof data.message === 'string') return data.message
   return fallback
 }

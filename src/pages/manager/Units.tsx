@@ -63,7 +63,7 @@ const ManagerUnits: React.FC = () => {
                   <td>{unit.unit_type || '—'}</td>
                   <td>{unit.bedrooms || '—'}</td>
                   <td>{unit.bathrooms || '—'}</td>
-                  <td>${unit.rent.toFixed(2)}</td>
+                  <td>KSh {unit.rent.toFixed(2)}</td>
                   <td>
                     <span className={`badge status-${unit.status}`}>
                       {unit.status || 'Available'}

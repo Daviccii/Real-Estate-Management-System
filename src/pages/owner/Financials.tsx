@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { getOwnerFinancialLedger } from '../../services/owner'
+import { MpesaTransaction, mpesaService } from '../../services/mpesa'
+import { MpesaStatusBadge } from '../../components/MpesaStatusBadge'
 import { Payment } from '../../types'
 
 export const OwnerFinancials: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([])
   const [totalCollected, setTotalCollected] = useState(0)
   const [totalPending, setTotalPending] = useState(0)
+  const [mpesaTxns, setMpesaTxns] = useState<MpesaTransaction[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -16,6 +19,12 @@ export const OwnerFinancials: React.FC = () => {
         setTotalPending(res.total_pending || 0)
       })
       .finally(() => setLoading(false))
+    // M-Pesa collections are shown only when the integration is live; any
+    // failure here must not break the rest of the ledger.
+    mpesaService
+      .listTransactions({ limit: 50 })
+      .then(setMpesaTxns)
+      .catch(() => setMpesaTxns([]))
   }, [])
 
   if (loading) {
@@ -129,6 +138,53 @@ export const OwnerFinancials: React.FC = () => {
           </div>
         )}
       </div>
+      {/* M-Pesa collections recorded against this landlord's properties */}
+      {mpesaTxns.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h2 className="font-bold text-slate-800">M-Pesa Collections & Allocation</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Each attempt is allocated to the property, unit, and lease it was collected against.
+              </p>
+            </div>
+            <span className="text-xs text-slate-400 font-medium">{mpesaTxns.length} attempt(s)</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr className="bg-slate-50/80 text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                  <th className="py-3 px-5">Reference</th>
+                  <th className="py-3 px-5">Property / Unit</th>
+                  <th className="py-3 px-5">Tenant</th>
+                  <th className="py-3 px-5">Amount</th>
+                  <th className="py-3 px-5">Channel</th>
+                  <th className="py-3 px-5">Status</th>
+                  <th className="py-3 px-5">M-Pesa Receipt</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {mpesaTxns.map((t) => (
+                  <tr key={t.id} className="hover:bg-slate-50/50 transition">
+                    <td className="py-3.5 px-5 font-mono text-xs font-semibold text-slate-800">{t.reference}</td>
+                    <td className="py-3.5 px-5">
+                      <div className="font-medium text-slate-800">{t.property_name || 'Property'}</div>
+                      <div className="text-xs text-slate-400">Unit: {t.unit_number || 'N/A'}</div>
+                    </td>
+                    <td className="py-3.5 px-5 text-xs text-slate-600">{t.tenant_name || `Tenant #${t.tenant_id}`}</td>
+                    <td className="py-3.5 px-5 font-bold text-slate-800">KSh {parseFloat(t.amount || '0').toLocaleString()}</td>
+                    <td className="py-3.5 px-5 text-xs text-slate-500">M-Pesa STK · {t.phone_number}</td>
+                    <td className="py-3.5 px-5">
+                      <MpesaStatusBadge status={t.status} />
+                    </td>
+                    <td className="py-3.5 px-5 font-mono text-xs text-slate-600">{t.mpesa_receipt_number || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

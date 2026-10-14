@@ -174,6 +174,7 @@ export interface Payment {
   property_name?: string
   unit_number?: string
   tenant_name?: string
+  outstanding_amount?: string
 }
 
 export interface Maintenance {

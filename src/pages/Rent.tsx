@@ -31,7 +31,7 @@ const RentPage: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const fetch = async (overrides?: { q?: string; type?: string; city?: string; status?: string; sort?: string; verified?: boolean; page?: number }) => {
+  const fetch = async (overrides?: { q?: string; type?: string; city?: string; status?: string; sort?: string; verified?: boolean; bedrooms?: string; budget?: string; page?: number }) => {
     setLoading(true); setError(null)
     const targetPage = overrides?.page ?? page
     const filterParams = {
@@ -40,6 +40,8 @@ const RentPage: React.FC = () => {
       city: (overrides?.city ?? cityFilter) || undefined,
       status: (overrides?.status ?? statusFilter) || undefined,
       verified_only: (overrides?.verified ?? verifiedOnly) || undefined,
+      bedrooms: (overrides?.bedrooms ?? bedroomsFilter) || undefined,
+      budget: (overrides?.budget ?? budgetFilter) || undefined,
       purpose: 'rent' as const,
     }
     try{
@@ -76,7 +78,7 @@ const RentPage: React.FC = () => {
     setBedroomsFilter(urlBedrooms)
     setMatched(urlMatch)
 
-    fetch({ q: urlQ, type: urlType, city: urlCity, status: urlStatus, sort: urlSort, page: 1 })
+    fetch({ q: urlQ, type: urlType, city: urlCity, status: urlStatus, sort: urlSort, bedrooms: urlBedrooms, budget: urlBudget, page: 1 })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

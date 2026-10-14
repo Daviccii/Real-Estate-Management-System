@@ -12,7 +12,7 @@ import { useFavorites } from '../contexts/FavoriteContext'
 import { useAuth } from '../contexts/AuthContext'
 import { NON_RESIDENTIAL_TYPES } from '../data/propertySearchOptions'
 import { PUBLIC_FEATURED_PROPERTIES_FALLBACK } from '../data/publicHomeContent'
-import { resolvePropertyImage, placeholderPropertyImage } from '../utils/propertyImages'
+import { propertyImage } from '../utils/propertyImages'
 import { propertyMapUrl } from '../utils/propertyLocation'
 
 function isResidentialType(propertyType?: string | null): boolean {
@@ -41,7 +41,6 @@ const PropertyDetailsPage: React.FC = () => {
   const [showTourViewer, setShowTourViewer] = useState(false)
   const [tourIndex, setTourIndex] = useState(0)
   const [loading, setLoading] = useState(false)
-  const [img, setImg] = useState<string | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
   const [showInquiry, setShowInquiry] = useState(false)
   const [inquiryMessage, setInquiryMessage] = useState('')
@@ -126,18 +125,6 @@ const PropertyDetailsPage: React.FC = () => {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [id])
-
-  useEffect(() => {
-    if (!item) return
-    let cancelled = false
-    setImg(placeholderPropertyImage(item))
-    resolvePropertyImage(item).then((url) => {
-      if (!cancelled) setImg(url)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [item?.id, item?.image_url, item?.property_type, item?.purpose])
 
   // Only signed-in users may fetch contact info; the backend reveals it only
   // when the owner enabled direct contact for this listing.
@@ -289,6 +276,7 @@ const PropertyDetailsPage: React.FC = () => {
   }
 
   const showBedBath = isResidentialType(item.property_type)
+  const img = propertyImage(item)
   const mapUrl = propertyMapUrl(item)
   const galleryUrls = parseGalleryUrls(item.gallery_urls)
   const mediaUrls = structuredMedia.map((media) => media.url).filter(Boolean)
@@ -330,7 +318,7 @@ const PropertyDetailsPage: React.FC = () => {
             }}
           >
             <img
-              src={img ?? placeholderPropertyImage(item)}
+              src={img}
               alt={item.name}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />

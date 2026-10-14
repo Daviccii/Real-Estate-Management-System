@@ -7,6 +7,7 @@ type AuthContextType = {
   user: User | null
   loading: boolean
   login: (email:string,password:string)=>Promise<any>
+  completeLogin: (fallbackUser?: User | null)=>Promise<User | null>
   register: (email:string,password:string,full_name?:string)=>Promise<void>
   logout: ()=>void
   hasRole: (role: RouteRole) => boolean
@@ -79,6 +80,21 @@ export const AuthProvider: React.FC<{children:React.ReactNode}> = ({children}) =
     }finally{setLoading(false)}
   }
 
+  // Finishes a multi-step login (MFA challenge / enrolment) by booting the
+  // session from the refresh cookie the server just set - the same boot path
+  // the app uses on reload. Without this the context user stays null after a
+  // 2FA login and RequireAuth bounces straight back to /login.
+  const completeLogin = async (fallbackUser: User | null = null): Promise<User | null> => {
+    try {
+      const u = await authService.refresh()
+      setUser(u)
+      return u
+    } catch {
+      setUser(fallbackUser)
+      return fallbackUser
+    }
+  }
+
   const register = async (email:string,password:string,full_name?:string)=>{
     setLoading(true)
     try{
@@ -114,7 +130,7 @@ export const AuthProvider: React.FC<{children:React.ReactNode}> = ({children}) =
   }
 
   return (
-    <AuthContext.Provider value={{user,loading,login,register,logout,hasRole,hasAnyRole,getDashboardPath}}>
+    <AuthContext.Provider value={{user,loading,login,completeLogin,register,logout,hasRole,hasAnyRole,getDashboardPath}}>
       {children}
     </AuthContext.Provider>
   )

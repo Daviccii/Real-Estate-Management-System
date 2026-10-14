@@ -9,11 +9,10 @@ import { PUBLIC_FEATURED_PROPERTIES_FALLBACK, PUBLIC_HOME_INTELLIGENCE, PUBLIC_H
 import { PROPERTY_TYPES, BUDGETS, BEDROOMS } from '../data/propertySearchOptions'
 import { useTranslation } from '../i18n/LanguageContext'
 
-// FIX: source.unsplash.com (Unsplash Source) was deprecated and shut down in
-// 2023 — this hero image was silently failing to load. picsum.photos is a
-// stable, still-active placeholder service; a fixed seed keeps the hero
-// looking the same on every load instead of changing randomly.
-const HERO_IMAGE = 'https://picsum.photos/seed/propnoxa-hero/1200/800'
+// Local hero photo (a real Nairobi CBD aerial) served from public/ — see
+// public/property-images/. Previously pointed at picsum.photos, which (a)
+// required the network and (b) showed a random unrelated photo.
+const HERO_IMAGE = '/property-images/hero-1.jpg'
 
 type SearchState = {
   location: string
