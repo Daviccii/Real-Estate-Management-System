@@ -16,4 +16,4 @@ psutil>=5.9
 redis>=5.0
 bleach>=6.0
 python-multipart
-fpdf2>=2.8
+fpdf2>=2.5

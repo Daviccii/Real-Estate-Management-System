@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
+from .base import ApiSchema
 
 
-class BuildingBase(BaseModel):
+class BuildingBase(ApiSchema):
     property_id: Optional[int] = None
     name: str
     building_type: Optional[str] = None
@@ -26,7 +27,7 @@ class BuildingCreate(BuildingBase):
     pass
 
 
-class BuildingUpdate(BaseModel):
+class BuildingUpdate(ApiSchema):
     name: Optional[str] = None
     building_type: Optional[str] = None
     address: Optional[str] = None

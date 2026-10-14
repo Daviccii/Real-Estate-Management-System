@@ -128,7 +128,7 @@ def list_leases(
     property_id: Optional[int] = None,
     unit_id: Optional[int] = None,
     tenant_id: Optional[int] = None,
-    status: Optional[str] = None,
+    status_filter: Optional[str] = Query(None, alias="status"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -142,7 +142,7 @@ def list_leases(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view leases")
     return repo_list_leases(
         db, skip=skip, limit=limit, property_id=property_id,
-        unit_id=unit_id, tenant_id=tenant_id, status=status,
+        unit_id=unit_id, tenant_id=tenant_id, status=status_filter,
         authorized_user_id=authorized_user_id
     )
 

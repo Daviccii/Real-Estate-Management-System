@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, ConfigDict
+from app.schemas.base import ApiSchema
 
 from app.database.database import get_db
 from app.auth.roles import require_admin
@@ -12,7 +13,7 @@ from app.services.audit_chain import verify_audit_chain
 router = APIRouter(prefix="/audit-logs", tags=["audit-logs"], dependencies=[Depends(require_admin)])
 
 
-class AuditLogOut(BaseModel):
+class AuditLogOut(ApiSchema):
     id: int
     actor_id: Optional[int]
     actor_name: Optional[str] = None
@@ -28,7 +29,7 @@ class AuditLogOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class AuditChainVerificationOut(BaseModel):
+class AuditChainVerificationOut(ApiSchema):
     verified: bool
     entries_checked: int
     root: Optional[Dict[str, Any]] = None

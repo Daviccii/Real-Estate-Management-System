@@ -1,9 +1,10 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
+from .base import ApiSchema
 from typing import Optional
 from datetime import datetime
 
 
-class LeaseBase(BaseModel):
+class LeaseBase(ApiSchema):
     tenant_id: int
     unit_id: int
     property_id: int
@@ -20,7 +21,7 @@ class LeaseCreate(LeaseBase):
     pass
 
 
-class LeaseUpdate(BaseModel):
+class LeaseUpdate(ApiSchema):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     rent_amount: Optional[str] = None
@@ -30,13 +31,13 @@ class LeaseUpdate(BaseModel):
     notes: Optional[str] = None
 
 
-class LeaseRenew(BaseModel):
+class LeaseRenew(ApiSchema):
     new_end_date: datetime
     new_rent_amount: Optional[str] = None
     notes: Optional[str] = None
 
 
-class LeaseTerminate(BaseModel):
+class LeaseTerminate(ApiSchema):
     termination_date: datetime
     reason: Optional[str] = None
     notes: Optional[str] = None

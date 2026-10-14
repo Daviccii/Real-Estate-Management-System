@@ -1,9 +1,10 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
+from .base import ApiSchema
 from typing import Optional
 from datetime import datetime
 
 
-class PaymentBase(BaseModel):
+class PaymentBase(ApiSchema):
     tenant_id: int
     lease_id: int
     property_id: int
@@ -22,7 +23,7 @@ class PaymentCreate(PaymentBase):
     pass
 
 
-class PaymentUpdate(BaseModel):
+class PaymentUpdate(ApiSchema):
     amount: Optional[str] = None
     payment_date: Optional[datetime] = None
     payment_method: Optional[str] = None
@@ -39,7 +40,7 @@ class PaymentOut(PaymentBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-class PaymentOverview(BaseModel):
+class PaymentOverview(ApiSchema):
     total_collected: str
     outstanding_balance: str
     overdue_amount: str

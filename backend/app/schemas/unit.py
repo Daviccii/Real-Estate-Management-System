@@ -1,9 +1,10 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
+from .base import ApiSchema
 from typing import Optional
 from datetime import datetime
 
 
-class UnitBase(BaseModel):
+class UnitBase(ApiSchema):
     property_id: int
     unit_number: str
     unit_type: Optional[str] = None
@@ -19,7 +20,7 @@ class UnitCreate(UnitBase):
     pass
 
 
-class UnitUpdate(BaseModel):
+class UnitUpdate(ApiSchema):
     unit_number: Optional[str] = None
     unit_type: Optional[str] = None
     bedrooms: Optional[int] = None

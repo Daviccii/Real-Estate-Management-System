@@ -131,7 +131,7 @@ def seed_all():
             agent = User(
                 email=agent_email,
                 hashed_password=get_password_hash('Agent123!'),
-                full_name='Grace Wanjiku',
+                full_name='Brian Ochieng',
                 phone='+254733445566',
                 role='agent',
                 roles_csv='agent',
@@ -165,7 +165,7 @@ def seed_all():
             tenant = User(
                 email=tenant_email,
                 hashed_password=get_password_hash('Tenant123!'),
-                full_name='Brian Ochieng',
+                full_name='Grace Wanjiku',
                 phone='+254744556677',
                 role='tenant',
                 roles_csv='tenant',

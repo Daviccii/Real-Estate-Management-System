@@ -103,6 +103,34 @@ class Settings(BaseSettings):
     # Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
     PAYMENT_WEBHOOK_SECRET: Optional[str] = None
 
+    # ==== M-PESA / SAFARICOM DARAJA (tenant rent collection) ====
+    # Credentials from your Safaricom Daraja app (developer.safaricom.co.ke).
+    # The integration is inert until CONSUMER_KEY, CONSUMER_SECRET, SHORTCODE,
+    # PASSKEY and CALLBACK_URL are all set; unrelated features always work.
+    # Setup guide: MPESA_SETUP.md at the repository root.
+    MPESA_ENVIRONMENT: str = "sandbox"  # sandbox | production
+    MPESA_CONSUMER_KEY: Optional[str] = None
+    MPESA_CONSUMER_SECRET: Optional[str] = None  # secret
+    MPESA_SHORTCODE: Optional[str] = None
+    MPESA_PASSKEY: Optional[str] = None  # secret
+    MPESA_CALLBACK_URL: Optional[str] = None
+    # CustomerPayBillOnline for PayBill shortcodes; CustomerBuyGoodsOnline for
+    # Buy Goods (Till) shortcodes. Must match the product of your shortcode.
+    MPESA_TRANSACTION_TYPE: str = "CustomerPayBillOnline"
+    MPESA_ACCOUNT_REFERENCE: str = "PropNoxa"  # max 12 chars (Daraja limit)
+    MPESA_TRANSACTION_DESCRIPTION: str = "Rent Payment"  # max 13 chars (Daraja limit)
+    MPESA_TIMEOUT_SECONDS: int = 30
+    # Hard safety switch: even with MPESA_ENVIRONMENT=production, live endpoint
+    # selection stays blocked until this is true (after sandbox validation).
+    MPESA_PRODUCTION_ENABLED: bool = False
+    # Per-transaction bound, whole Kenyan shillings (M-Pesa per-transaction limit).
+    MPESA_MAX_AMOUNT: int = 250000
+    # STK pushes one tenant may initiate per hour (spam/abuse guard).
+    MPESA_INITIATE_LIMIT_PER_HOUR: int = 10
+    # A payment obligation with a live STK request younger than this cannot be
+    # pushed again (prevents duplicate PIN prompts / accidental double charge).
+    MPESA_DUPLICATE_WINDOW_SECONDS: int = 300
+
     # ==== EMAIL (transactional notifications) ====
     # console: log the email instead of delivering it (safe default for dev/tests).
     # smtp: deliver via SMTP_HOST (works with SES/Mailgun SMTP relays, Mailhog, Gmail).
@@ -118,7 +146,12 @@ class Settings(BaseSettings):
     # ==== SMS (MFA backup codes, high-priority alerts) ====
     # console: log the message instead of delivering it (safe default for dev/tests).
     # twilio: fails closed until provider credentials are set (from a secrets manager).
+    # africastalking: Africa's Talking SMS provider for Kenya/region.
     SMS_BACKEND: str = "console"
+    AT_USERNAME: Optional[str] = None
+    AT_API_KEY: Optional[str] = None  # secret: env/.env only, never commit
+    AT_ENVIRONMENT: str = "sandbox"  # sandbox | production
+    AT_SENDER_ID: Optional[str] = None
 
     # ==== BACKUPS ====
     BACKUP_DIR: str = "backups/database"
@@ -213,10 +246,29 @@ class Settings(BaseSettings):
     @field_validator("SMS_BACKEND")
     @classmethod
     def validate_sms_backend(cls, v: str) -> str:
-        """Only console and twilio transports exist; unknown values fail fast."""
+        """Only console, twilio, and africastalking transports exist; unknown values fail fast."""
         v = v.strip().lower()
-        if v not in ("console", "twilio"):
-            raise ValueError("SMS_BACKEND must be 'console' or 'twilio'")
+        if v not in ("console", "twilio", "africastalking"):
+            raise ValueError("SMS_BACKEND must be 'console', 'twilio', or 'africastalking'")
+        return v
+
+    @field_validator("MPESA_ENVIRONMENT")
+    @classmethod
+    def validate_mpesa_environment(cls, v: str) -> str:
+        """Only the two Daraja environments exist; unknown values fail fast."""
+        v = v.strip().lower()
+        if v not in ("sandbox", "production"):
+            raise ValueError("MPESA_ENVIRONMENT must be 'sandbox' or 'production'")
+        return v
+
+    @field_validator("MPESA_TRANSACTION_TYPE")
+    @classmethod
+    def validate_mpesa_transaction_type(cls, v: str) -> str:
+        """STK Push supports exactly these two transaction types."""
+        v = v.strip()
+        allowed = ("CustomerPayBillOnline", "CustomerBuyGoodsOnline")
+        if v not in allowed:
+            raise ValueError(f"MPESA_TRANSACTION_TYPE must be one of {allowed}")
         return v
 
     @model_validator(mode="after")

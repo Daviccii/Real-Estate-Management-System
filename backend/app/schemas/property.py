@@ -1,11 +1,12 @@
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, constr, conint
+from pydantic import AliasChoices, ConfigDict, Field, constr, conint
+from .base import ApiSchema
 from typing import Dict, Optional, Literal, List
 from datetime import datetime
 
 PropertyPurpose = Literal["buy", "rent", "invest"]
 
 
-class PropertyBase(BaseModel):
+class PropertyBase(ApiSchema):
     name: constr(min_length=1, max_length=255)
     property_type: Optional[constr(max_length=100)] = None
     description: Optional[str] = None
@@ -56,7 +57,7 @@ class PropertyCreate(PropertyBase):
     purpose: Optional[PropertyPurpose] = "rent"
 
 
-class PropertyUpdate(BaseModel):
+class PropertyUpdate(ApiSchema):
     name: Optional[constr(min_length=1, max_length=255)] = None
     property_type: Optional[constr(max_length=100)] = None
     description: Optional[str] = None
@@ -102,7 +103,7 @@ class PropertyUpdate(BaseModel):
     is_demo: Optional[bool] = None
 
 
-class BuildingSummary(BaseModel):
+class BuildingSummary(ApiSchema):
     id: int
     name: str
     address: Optional[str] = None
@@ -120,7 +121,7 @@ class BuildingSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class PropertyMediaOut(BaseModel):
+class PropertyMediaOut(ApiSchema):
     id: int
     url: str
     media_type: str
@@ -147,7 +148,7 @@ class PropertyOut(PropertyBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-class PropertyMatchRequest(BaseModel):
+class PropertyMatchRequest(ApiSchema):
     # Accept both the current field names and the legacy aliases earlier
     # clients posted (city / max_price / location were silently dropped
     # before because they were not schema fields).
@@ -168,7 +169,7 @@ class PropertyMatchRequest(BaseModel):
     amenities: Optional[List[str]] = None
 
 
-class PropertyMatchResult(BaseModel):
+class PropertyMatchResult(ApiSchema):
     property: PropertyOut
     match_score: int
     match_label: str = "Possible match"

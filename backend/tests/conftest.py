@@ -18,6 +18,25 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+# Test hermeticity: a developer's local backend/.env may hold REAL provider
+# credentials (Africa's Talking, Daraja). pydantic-settings gives process env
+# vars precedence over .env, so these pins — set before app.main (and thus
+# the Settings singleton) is imported — keep the suite from ever making live
+# external calls or running in production mode. Tests that need specific
+# provider settings monkeypatch the Settings object directly.
+import os
+os.environ["SMS_BACKEND"] = "console"
+os.environ["MPESA_ENVIRONMENT"] = "sandbox"
+os.environ["MPESA_PRODUCTION_ENABLED"] = "false"
+for _var in (
+    "MPESA_CONSUMER_KEY",
+    "MPESA_CONSUMER_SECRET",
+    "MPESA_PASSKEY",
+    "MPESA_SHORTCODE",
+    "MPESA_CALLBACK_URL",
+):
+    os.environ[_var] = ""
+
 import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker

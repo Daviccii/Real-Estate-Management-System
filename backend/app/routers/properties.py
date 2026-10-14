@@ -92,6 +92,10 @@ def list_props(
     sort: Optional[str] = None,
     purpose: Optional[str] = None,
     verified_only: bool = False,
+    bedrooms: Optional[str] = None,
+    budget: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -100,7 +104,8 @@ def list_props(
     return repo_list_properties(
         db, skip=skip, limit=limit, search=search, property_type=property_type,
         city=city, status=status, sort=sort, purpose=purpose,
-        verified_only=verified_only, company_id=current_user.company_id,
+        verified_only=verified_only, bedrooms=bedrooms, budget=budget,
+        min_price=min_price, max_price=max_price, company_id=current_user.company_id,
     )
 
 
@@ -115,18 +120,23 @@ def list_public(
     sort: Optional[str] = None,
     purpose: Optional[str] = None,
     verified_only: bool = False,
+    bedrooms: Optional[str] = None,
+    budget: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
     db: Session = Depends(get_read_db),
 ):
     """Public properties listing — no authentication required."""
     key = property_list_key(
         skip=skip, limit=limit, search=search, property_type=property_type,
         city=city, status=status, sort=sort, purpose=purpose,
-        verified_only=verified_only,
+        verified_only=verified_only, bedrooms=bedrooms, budget=budget,
+        min_price=min_price, max_price=max_price,
     )
     cached = cache_get_json(key)
     if cached is not None:
         return cached
-    props = repo_list_properties(db, skip=skip, limit=limit, search=search, property_type=property_type, city=city, status=status, sort=sort, purpose=purpose, verified_only=verified_only)
+    props = repo_list_properties(db, skip=skip, limit=limit, search=search, property_type=property_type, city=city, status=status, sort=sort, purpose=purpose, verified_only=verified_only, bedrooms=bedrooms, budget=budget, min_price=min_price, max_price=max_price)
     payload = [PropertyOut.model_validate(p).model_dump(mode="json") for p in props]
     cache_set_json(key, payload)
     return payload
@@ -140,6 +150,10 @@ def public_count(
     status: Optional[str] = None,
     purpose: Optional[str] = None,
     verified_only: bool = False,
+    bedrooms: Optional[str] = None,
+    budget: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
     db: Session = Depends(get_read_db),
 ):
     """
@@ -148,7 +162,7 @@ def public_count(
     compute real total page counts instead of guessing from whether the last
     page came back full.
     """
-    total = repo_count_properties(db, search=search, property_type=property_type, city=city, status=status, purpose=purpose, verified_only=verified_only)
+    total = repo_count_properties(db, search=search, property_type=property_type, city=city, status=status, purpose=purpose, verified_only=verified_only, bedrooms=bedrooms, budget=budget, min_price=min_price, max_price=max_price)
     return {"total": total}
 
 

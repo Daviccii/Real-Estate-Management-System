@@ -4,6 +4,7 @@ from app.utils.time import utc_now
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, ConfigDict
+from app.schemas.base import ApiSchema
 
 from app.database.database import get_db
 from app.config.settings import settings
@@ -32,7 +33,7 @@ class MessageCreate(BaseModel):
     attachment_url: Optional[str] = None
 
 
-class MessageOut(BaseModel):
+class MessageOut(ApiSchema):
     id: int
     conversation_id: int
     sender_id: int
@@ -45,7 +46,7 @@ class MessageOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class ConversationOut(BaseModel):
+class ConversationOut(ApiSchema):
     id: int
     title: Optional[str]
     property_id: Optional[int]

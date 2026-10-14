@@ -130,7 +130,7 @@ def get_tenant_dashboard(
             "applicant_id": a.applicant_id,
             "status": a.status,
             "monthly_income": a.monthly_income,
-            "notes": a.notes,
+            "review_notes": a.review_notes,
             "created_at": a.created_at.isoformat() if hasattr(a.created_at, "isoformat") else str(a.created_at),
             "property_name": a.property.name if a.property else "Property",
         }
@@ -229,6 +229,9 @@ def get_my_payments(
     Returns all payment records for current tenant.
     """
     payments = db.query(Payment).filter(Payment.tenant_id == current_user.id).order_by(Payment.due_date.desc()).all()
+    from app.services.mpesa_service import outstanding_for_payment
+    from app.utils.money import format_amount
+
     return [
         {
             "id": p.id,
@@ -242,6 +245,10 @@ def get_my_payments(
             "payment_method": p.payment_method,
             "reference": p.reference,
             "property_name": p.property.name if p.property else None,
+            "unit_number": p.unit.unit_number if p.unit else None,
+            # Server-computed balance (obligation minus applied M-Pesa credits)
+            # so the pay dialog prefills an amount the backend will accept.
+            "outstanding_amount": format_amount(outstanding_for_payment(db, p)),
         }
         for p in payments
     ]

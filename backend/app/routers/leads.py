@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, ConfigDict
+from app.schemas.base import ApiSchema
 
 from app.database.database import get_db
 from app.auth.deps import get_current_user
@@ -35,7 +36,7 @@ class LeadStageUpdate(BaseModel):
     commission_amount: Optional[str] = None
 
 
-class LeadOut(BaseModel):
+class LeadOut(ApiSchema):
     id: int
     agent_id: int
     prospect_id: Optional[int]

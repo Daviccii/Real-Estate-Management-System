@@ -90,7 +90,7 @@ def list_property_units(
     property_id: int,
     skip: SkipParam = 0,
     limit: LimitParam = 100,
-    status: Optional[str] = None,
+    status_filter: Optional[str] = Query(None, alias="status"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -102,7 +102,7 @@ def list_property_units(
     if not can_manage_unit(current_user, property_obj):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view units for this property")
 
-    units = repo_list_units(db, skip=skip, limit=limit, property_id=property_id, status=status)
+    units = repo_list_units(db, skip=skip, limit=limit, property_id=property_id, status=status_filter)
     return units
 
 

@@ -1,9 +1,10 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
+from .base import ApiSchema
 from typing import Optional
 from datetime import datetime
 
 
-class PlatformSettingsBase(BaseModel):
+class PlatformSettingsBase(ApiSchema):
     enable_user_registration: bool = True
     require_email_verification: bool = False
     enable_property_moderation: bool = False
@@ -14,7 +15,7 @@ class PlatformSettingsBase(BaseModel):
     notify_property_updates: bool = False
 
 
-class PlatformSettingsUpdate(BaseModel):
+class PlatformSettingsUpdate(ApiSchema):
     enable_user_registration: Optional[bool] = None
     require_email_verification: Optional[bool] = None
     enable_property_moderation: Optional[bool] = None

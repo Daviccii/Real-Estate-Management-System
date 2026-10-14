@@ -10,6 +10,8 @@ from app.models.inquiry import Inquiry
 from app.models.unit import Unit
 from app.models.lease import Lease
 from app.models.payment import Payment
+from app.models.mpesa_transaction import MpesaTransaction
+from app.models.mpesa_refund import MpesaRefund
 from app.models.maintenance import Maintenance
 from app.models.notification import Notification
 from app.models.platform_settings import PlatformSettings
@@ -48,6 +50,8 @@ __all__ = [
     "Unit",
     "Lease",
     "Payment",
+    "MpesaTransaction",
+    "MpesaRefund",
     "Maintenance",
     "Notification",
     "PlatformSettings",

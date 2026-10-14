@@ -1,13 +1,14 @@
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
+from pydantic import EmailStr, ConfigDict, field_validator
+from .base import ApiSchema
 
 
 # ============================================================================
 # TENANT REGISTRATION & PROFILE
 # ============================================================================
 
-class TenantRegistrationPayload(BaseModel):
+class TenantRegistrationPayload(ApiSchema):
     email: EmailStr
     password: str
     full_name: str
@@ -35,7 +36,7 @@ class TenantRegistrationPayload(BaseModel):
         return v
 
 
-class TenantProfileOut(BaseModel):
+class TenantProfileOut(ApiSchema):
     id: int
     user_id: int
     preferred_locations: Optional[str] = None
@@ -62,7 +63,7 @@ class TenantProfileOut(BaseModel):
 # OWNER REGISTRATION & PROFILE
 # ============================================================================
 
-class OwnerRegistrationPayload(BaseModel):
+class OwnerRegistrationPayload(ApiSchema):
     email: EmailStr
     password: str
     full_name: str
@@ -85,7 +86,7 @@ class OwnerRegistrationPayload(BaseModel):
         return v
 
 
-class OwnerProfileOut(BaseModel):
+class OwnerProfileOut(ApiSchema):
     id: int
     user_id: int
     owner_type: str
@@ -108,7 +109,7 @@ class OwnerProfileOut(BaseModel):
 # AGENT REGISTRATION & PROFILE
 # ============================================================================
 
-class AgentRegistrationPayload(BaseModel):
+class AgentRegistrationPayload(ApiSchema):
     email: EmailStr
     password: str
     full_name: str
@@ -129,7 +130,7 @@ class AgentRegistrationPayload(BaseModel):
         return v
 
 
-class AgentProfileOut(BaseModel):
+class AgentProfileOut(ApiSchema):
     id: int
     user_id: int
     agency_name: Optional[str] = None
@@ -150,7 +151,7 @@ class AgentProfileOut(BaseModel):
 # SERVICE PROVIDER REGISTRATION & PROFILE
 # ============================================================================
 
-class ProviderRegistrationPayload(BaseModel):
+class ProviderRegistrationPayload(ApiSchema):
     email: EmailStr
     password: str
     full_name: str
@@ -171,7 +172,7 @@ class ProviderRegistrationPayload(BaseModel):
         return v
 
 
-class ProviderProfileOut(BaseModel):
+class ProviderProfileOut(ApiSchema):
     id: int
     user_id: int
     business_name: str
@@ -193,7 +194,7 @@ class ProviderProfileOut(BaseModel):
 # PROPERTY MANAGER PROVISIONING & PROFILE
 # ============================================================================
 
-class ManagerProvisionPayload(BaseModel):
+class ManagerProvisionPayload(ApiSchema):
     email: EmailStr
     password: str
     full_name: str
@@ -212,7 +213,7 @@ class ManagerProvisionPayload(BaseModel):
         return v
 
 
-class ManagerProfileOut(BaseModel):
+class ManagerProfileOut(ApiSchema):
     id: int
     user_id: int
     company_name: Optional[str] = None
@@ -231,7 +232,7 @@ class ManagerProfileOut(BaseModel):
 # UNIFIED AUTH / LOGIN / CURRENT USER SCHEMAS
 # ============================================================================
 
-class UserProfileSummary(BaseModel):
+class UserProfileSummary(ApiSchema):
     id: int
     email: EmailStr
     full_name: Optional[str] = None
@@ -250,7 +251,7 @@ class UserProfileSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class AuthLoginResponse(BaseModel):
+class AuthLoginResponse(ApiSchema):
     access_token: str = ""
     token_type: str = "bearer"
     redirect_url: Optional[str] = None

@@ -1,9 +1,10 @@
-from pydantic import BaseModel, ConfigDict, constr
+from pydantic import ConfigDict, constr
+from .base import ApiSchema
 from typing import Optional
 from datetime import datetime
 
 
-class InquiryBase(BaseModel):
+class InquiryBase(ApiSchema):
     message: constr(min_length=1, max_length=2000)
     status: Optional[str] = "pending"
 
@@ -12,12 +13,12 @@ class InquiryCreate(InquiryBase):
     property_id: int
 
 
-class InquiryUpdate(BaseModel):
+class InquiryUpdate(ApiSchema):
     message: Optional[constr(min_length=1, max_length=2000)] = None
     status: Optional[str] = None
 
 
-class InquiryOut(BaseModel):
+class InquiryOut(ApiSchema):
     id: int
     user_id: int
     property_id: int

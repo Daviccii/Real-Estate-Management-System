@@ -148,6 +148,7 @@ def test_public_list_uses_cache_and_invalidation_flushes_it(
     list_key = cache_service.property_list_key(
         city=None, limit=10, property_type=None, purpose=None,
         search=None, skip=0, sort=None, status=None, verified_only=False,
+        bedrooms=None, budget=None, min_price=None, max_price=None,
     )
     assert list_key in cache.store
 

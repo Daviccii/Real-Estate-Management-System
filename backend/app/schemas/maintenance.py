@@ -1,9 +1,10 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
+from .base import ApiSchema
 from typing import Optional
 from datetime import datetime
 
 
-class MaintenanceBase(BaseModel):
+class MaintenanceBase(ApiSchema):
     property_id: int
     title: str
     description: Optional[str] = None
@@ -21,7 +22,7 @@ class MaintenanceCreate(MaintenanceBase):
     pass
 
 
-class MaintenanceUpdate(BaseModel):
+class MaintenanceUpdate(ApiSchema):
     title: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
@@ -33,12 +34,12 @@ class MaintenanceUpdate(BaseModel):
     resolved_at: Optional[datetime] = None
 
 
-class MaintenanceAssign(BaseModel):
+class MaintenanceAssign(ApiSchema):
     assigned_manager_id: int
     notes: Optional[str] = None
 
 
-class MaintenanceResolve(BaseModel):
+class MaintenanceResolve(ApiSchema):
     resolution_notes: Optional[str] = None
     cost: Optional[str] = None
 

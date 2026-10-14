@@ -1,12 +1,13 @@
 from typing import Optional
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, field_validator, constr, conint
+from pydantic import ConfigDict, field_validator, constr, conint
+from .base import ApiSchema
 
 from app.services.tour_service import parse_tour_url
 
 
-class PropertyTourBase(BaseModel):
+class PropertyTourBase(ApiSchema):
     title: Optional[constr(max_length=255)] = None
     url: constr(min_length=1, max_length=1000)
     thumbnail_url: Optional[constr(max_length=1000)] = None
@@ -31,7 +32,7 @@ class PropertyTourCreate(PropertyTourBase):
     pass
 
 
-class PropertyTourUpdate(BaseModel):
+class PropertyTourUpdate(ApiSchema):
     title: Optional[constr(max_length=255)] = None
     url: Optional[constr(min_length=1, max_length=1000)] = None
     thumbnail_url: Optional[constr(max_length=1000)] = None
@@ -52,7 +53,7 @@ class PropertyTourUpdate(BaseModel):
         return value
 
 
-class PropertyTourOut(BaseModel):
+class PropertyTourOut(ApiSchema):
     id: int
     property_id: int
     title: Optional[str] = None

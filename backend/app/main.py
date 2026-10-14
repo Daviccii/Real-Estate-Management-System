@@ -40,7 +40,7 @@ from app.routers import (
     leases, payments, maintenance, notifications, viewings, applications,
     leads, communications, service_marketplace, verifications, audit_logs,
     owner, agent, tenant, buildings, property_media, property_tours, companies, companies,
-    email_verification, password_reset, mfa, privacy, reports, analytics
+    email_verification, password_reset, mfa, privacy, reports, analytics, mpesa
 )
 from app.observability.metrics import snapshot, timed_call
 from app.services.rate_limiter import allow_request
@@ -292,7 +292,12 @@ async def readiness_probe():
 
 @app.get("/health/metrics", tags=["health"])
 async def metrics():
-    return snapshot()
+    from app.services.mpesa_service import mpesa_config_status
+
+    data = snapshot()
+    # Informational only: missing M-Pesa credentials never affect app health.
+    data["mpesa"] = mpesa_config_status()
+    return data
 
 
 @app.get("/", tags=["root"])
@@ -377,6 +382,7 @@ app.include_router(mfa.router, prefix="/api/v1", tags=["auth"])
 app.include_router(privacy.router, prefix="/api/v1", tags=["privacy"])
 app.include_router(reports.router, prefix="/api/v1", tags=["reports"])
 app.include_router(analytics.router, prefix="/api/v1", tags=["analytics"])
+app.include_router(mpesa.router, prefix="/api/v1", tags=["mpesa"])
 
 
 # ============================================================================

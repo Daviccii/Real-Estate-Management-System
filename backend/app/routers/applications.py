@@ -4,6 +4,7 @@ from app.utils.time import utc_now
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, ConfigDict
+from app.schemas.base import ApiSchema
 
 from app.database.database import get_db
 from app.auth.deps import get_current_user
@@ -52,7 +53,7 @@ class ConvertToLeasePayload(BaseModel):
     notes: Optional[str] = None
 
 
-class ApplicationOut(BaseModel):
+class ApplicationOut(ApiSchema):
     id: int
     applicant_id: int
     property_id: int

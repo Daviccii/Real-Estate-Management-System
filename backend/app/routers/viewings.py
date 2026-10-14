@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, ConfigDict
+from app.schemas.base import ApiSchema
 
 from app.database.database import get_db
 from app.auth.deps import get_current_user
@@ -36,7 +37,7 @@ class ViewingStatusUpdate(BaseModel):
     feedback: Optional[str] = None
 
 
-class ViewingOut(BaseModel):
+class ViewingOut(ApiSchema):
     id: int
     property_id: int
     unit_id: Optional[int]

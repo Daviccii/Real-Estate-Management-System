@@ -77,7 +77,7 @@ def list_maintenance(
     property_id: Optional[int] = None,
     unit_id: Optional[int] = None,
     tenant_id: Optional[int] = None,
-    status: Optional[str] = None,
+    status_filter: Optional[str] = Query(None, alias="status"),
     priority: Optional[str] = None,
     assigned_manager_id: Optional[int] = None,
     db: Session = Depends(get_db),
@@ -93,7 +93,7 @@ def list_maintenance(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view maintenance requests")
     return repo_list_maintenance(
         db, skip=skip, limit=limit, property_id=property_id,
-        unit_id=unit_id, tenant_id=tenant_id, status=status,
+        unit_id=unit_id, tenant_id=tenant_id, status=status_filter,
         priority=priority, assigned_manager_id=assigned_manager_id,
         authorized_user_id=authorized_user_id
     )
@@ -104,7 +104,7 @@ def list_tenant_maintenance(
     tenant_id: int,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=settings.MAX_PAGE_SIZE),
-    status: Optional[str] = None,
+    status_filter: Optional[str] = Query(None, alias="status"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -117,11 +117,11 @@ def list_tenant_maintenance(
 
     if verify_role(current_user, ["manager"]):
         return repo_list_maintenance(
-            db, skip=skip, limit=limit, tenant_id=tenant_id, status=status,
+            db, skip=skip, limit=limit, tenant_id=tenant_id, status=status_filter,
             authorized_user_id=current_user.id
         )
 
-    return repo_list_maintenance(db, skip=skip, limit=limit, tenant_id=tenant_id, status=status)
+    return repo_list_maintenance(db, skip=skip, limit=limit, tenant_id=tenant_id, status=status_filter)
 
 
 @router.get("/properties/{property_id}/maintenance", response_model=List[MaintenanceOut])
@@ -129,7 +129,7 @@ def list_property_maintenance(
     property_id: int,
     skip: SkipParam = 0,
     limit: LimitParam = 100,
-    status: Optional[str] = None,
+    status_filter: Optional[str] = Query(None, alias="status"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -141,7 +141,7 @@ def list_property_maintenance(
     if not can_manage_maintenance(current_user, property_obj):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view maintenance requests for this property")
 
-    requests = repo_list_maintenance(db, skip=skip, limit=limit, property_id=property_id, status=status)
+    requests = repo_list_maintenance(db, skip=skip, limit=limit, property_id=property_id, status=status_filter)
     return requests
 
 

@@ -1,11 +1,12 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
+from pydantic import ConfigDict, EmailStr, field_validator
+from .base import ApiSchema
 from typing import Optional
 from datetime import datetime
 
 from app.utils.sanitization import sanitize_string, detect_xss_attack
 
 
-class UserCreate(BaseModel):
+class UserCreate(ApiSchema):
     email: EmailStr
     password: str
     full_name: Optional[str] = None
@@ -41,7 +42,7 @@ class UserCreate(BaseModel):
             raise ValueError("Invalid characters detected in name")
         return sanitize_string(v, max_length=100)
 
-class UserOut(BaseModel):
+class UserOut(ApiSchema):
     id: int
     company_id: Optional[int] = None
     email: EmailStr

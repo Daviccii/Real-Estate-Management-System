@@ -512,7 +512,7 @@ def manager_payments_overview(
     property_ids = [p.id for p in managed_property_ids]
     
     if not property_ids:
-        return {"total": 0, "paid": 0, "pending": 0, "overdue": 0, "total_amount": 0}
+        return {"total": 0, "paid": 0, "pending": 0, "overdue": 0, "total_amount": 0, "outstanding_amount": 0}
     
     total = db.query(func.count(Payment.id)).filter(
         Payment.property_id.in_(property_ids)
@@ -536,13 +536,19 @@ def manager_payments_overview(
     total_amount = db.query(func.coalesce(func.sum(Payment.amount), 0)).filter(
         Payment.property_id.in_(property_ids)
     ).scalar() or 0
-    
+
+    outstanding_amount = db.query(func.coalesce(func.sum(Payment.amount), 0)).filter(
+        Payment.property_id.in_(property_ids),
+        Payment.status.in_(["pending", "partially_paid", "overdue"])
+    ).scalar() or 0
+
     return {
         "total": total,
         "paid": paid,
         "pending": pending,
         "overdue": overdue,
-        "total_amount": float(total_amount)
+        "total_amount": float(total_amount),
+        "outstanding_amount": float(outstanding_amount)
     }
 
 
